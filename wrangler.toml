@@ -1,0 +1,6 @@
+# Cloudflare Workers – statické assety (GDD 2/12.1). API (leaderboard, D1) príde neskôr.
+name = "bastion-grid"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "."
