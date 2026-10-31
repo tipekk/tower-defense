@@ -38,6 +38,11 @@ export class Game {
     this.lives = opts.startLives ?? DEFAULT_START_LIVES;
 
     this.waveNumber = 0;
+    // HP scaling uses the wave number WITHIN the current level (task Y):
+    // startLevel() records the global wave count at the level start, so
+    // each level's difficulty comes from its map hpMultiplier, not from how
+    // many waves earlier levels had.
+    this.levelWaveBase = 0;
     this.waveRunner = null;
     this.waveQueue = []; // queued spawnLists for upcoming waves
 
@@ -124,11 +129,21 @@ export class Game {
     if (!this.waveRunner) this._startNextWave();
   }
 
+  /** 1-based wave number inside the current level (drives HP scaling). */
+  get levelWaveNumber() {
+    return Math.max(1, this.waveNumber - this.levelWaveBase);
+  }
+
+  /** Call when a new level (map) begins: resets per-level HP scaling. */
+  startLevel() {
+    this.levelWaveBase = this.waveNumber;
+  }
+
   _startNextWave() {
     const spawnList = this.waveQueue.shift();
     if (!spawnList) return;
     this.waveNumber += 1;
-    this.waveRunner = new WaveRunner(spawnList, this.waveNumber, this.path);
+    this.waveRunner = new WaveRunner(spawnList, this.levelWaveNumber, this.path);
   }
 
   isWaveActive() {
@@ -202,7 +217,7 @@ export class Game {
         const cfg = ENEMY_TYPES[boss.type];
         for (let i = 0; i < cfg.spawnCount; i++) {
           const ty = cfg.spawnTypes ? cfg.spawnTypes[i % cfg.spawnTypes.length] : cfg.spawnType;
-          const minion = new (boss.constructor)(ty, this.waveNumber, this.path);
+          const minion = new (boss.constructor)(ty, this.levelWaveNumber, this.path);
           if (boss.minionHpMult && boss.minionHpMult !== 1) minion.applyHpMultiplier(boss.minionHpMult);
           this.enemies.push(minion);
         }
@@ -246,7 +261,7 @@ export class Game {
     const count = cfg.splitCount || 2;
     const offs = 0.35 / (this.path.length || 1);
     for (let i = 0; i < count; i++) {
-      const half = new (boss.constructor)(cfg.splitType, this.waveNumber, this.path);
+      const half = new (boss.constructor)(cfg.splitType, this.levelWaveNumber, this.path);
       half.maxHp = boss.maxHp * (cfg.splitHpPct || 0.2);
       half.hp = half.maxHp;
       half.hpMult = boss.hpMult;

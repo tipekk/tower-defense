@@ -1,6 +1,7 @@
 {
   "id": "map_02",
   "name": "Druhá Bašta",
+  "hpMultiplier": 2.2,
   "mode": ["basic", "zombie"],
   "width": 12,
   "height": 12,
@@ -49,16 +50,16 @@
     { "index": 7, "enemies": [{ "type": "kotlar", "count": 14, "delay": 0.65 }, { "type": "navijac", "count": 2, "delay": 1.0 }] },
     { "index": 8, "enemies": [{ "type": "cvakac", "count": 24, "delay": 0.4 }, { "type": "vazka", "count": 6, "delay": 0.55 }] },
     { "index": 9, "enemies": [{ "type": "kotlar", "count": 12, "delay": 0.6 }, { "type": "vrtiak", "count": 14, "delay": 0.35 }, { "type": "navijac", "count": 2, "delay": 1.0 } ] },
-    { "index": 10, "enemies": [{ "type": "vazka", "count": 14, "delay": 0.45 }, { "type": "kotlar", "count": 10, "delay": 0.6 }] },
-    { "index": 11, "enemies": [{ "type": "navijac", "count": 3, "delay": 0.9 }, { "type": "kotlar", "count": 16, "delay": 0.55 }, { "type": "cvakac", "count": 16, "delay": 0.4 }] },
-    { "index": 12, "enemies": [{ "type": "vrtiak", "count": 20, "delay": 0.3 }, { "type": "vazka", "count": 10, "delay": 0.5 }] },
-    { "index": 13, "enemies": [{ "type": "kotlar", "count": 18, "delay": 0.5 }, { "type": "navijac", "count": 3, "delay": 0.9 }] },
-    { "index": 14, "enemies": [{ "type": "cvakac", "count": 20, "delay": 0.35 }, { "type": "vrtiak", "count": 16, "delay": 0.3 }, { "type": "vazka", "count": 8, "delay": 0.5 }] },
-    { "index": 15, "enemies": [{ "type": "kotlar", "count": 20, "delay": 0.45 }, { "type": "navijac", "count": 4, "delay": 0.8 }] },
-    { "index": 16, "enemies": [{ "type": "vazka", "count": 16, "delay": 0.4 }, { "type": "kotlar", "count": 16, "delay": 0.5 }] },
-    { "index": 17, "enemies": [{ "type": "navijac", "count": 4, "delay": 0.8 }, { "type": "vrtiak", "count": 22, "delay": 0.28 }, { "type": "kotlar", "count": 10, "delay": 0.5 }] },
-    { "index": 18, "enemies": [{ "type": "kotlar", "count": 22, "delay": 0.4 }, { "type": "vazka", "count": 12, "delay": 0.45 }, { "type": "navijac", "count": 3, "delay": 0.8 }] },
-    { "index": 19, "enemies": [{ "type": "cvakac", "count": 18, "delay": 0.3 }, { "type": "vrtiak", "count": 18, "delay": 0.28 }, { "type": "kotlar", "count": 18, "delay": 0.45 }, { "type": "navijac", "count": 3, "delay": 0.8 }] },
-    { "index": 20, "enemies": [{ "type": "boss_kukucka_major", "count": 1, "delay": 0 }, { "type": "kotlar", "count": 14, "delay": 0.5 }, { "type": "navijac", "count": 2, "delay": 0.9 }] }
+    { "index": 10, "enemies": [{ "type": "vazka", "count": 17, "delay": 0.45 }, { "type": "kotlar", "count": 12, "delay": 0.6 }] },
+    { "index": 11, "enemies": [{ "type": "navijac", "count": 4, "delay": 0.9 }, { "type": "kotlar", "count": 19, "delay": 0.55 }, { "type": "cvakac", "count": 19, "delay": 0.4 }] },
+    { "index": 12, "enemies": [{ "type": "vrtiak", "count": 23, "delay": 0.3 }, { "type": "vazka", "count": 12, "delay": 0.5 }] },
+    { "index": 13, "enemies": [{ "type": "kotlar", "count": 21, "delay": 0.5 }, { "type": "navijac", "count": 4, "delay": 0.9 }] },
+    { "index": 14, "enemies": [{ "type": "cvakac", "count": 23, "delay": 0.35 }, { "type": "vrtiak", "count": 19, "delay": 0.3 }, { "type": "vazka", "count": 10, "delay": 0.5 }] },
+    { "index": 15, "enemies": [{ "type": "kotlar", "count": 23, "delay": 0.45 }, { "type": "navijac", "count": 5, "delay": 0.8 }] },
+    { "index": 16, "enemies": [{ "type": "vazka", "count": 19, "delay": 0.4 }, { "type": "kotlar", "count": 19, "delay": 0.5 }] },
+    { "index": 17, "enemies": [{ "type": "navijac", "count": 5, "delay": 0.8 }, { "type": "vrtiak", "count": 26, "delay": 0.28 }, { "type": "kotlar", "count": 12, "delay": 0.5 }] },
+    { "index": 18, "enemies": [{ "type": "kotlar", "count": 26, "delay": 0.4 }, { "type": "vazka", "count": 14, "delay": 0.45 }, { "type": "navijac", "count": 4, "delay": 0.8 }] },
+    { "index": 19, "enemies": [{ "type": "cvakac", "count": 21, "delay": 0.3 }, { "type": "vrtiak", "count": 21, "delay": 0.28 }, { "type": "kotlar", "count": 21, "delay": 0.45 }, { "type": "navijac", "count": 4, "delay": 0.8 }] },
+    { "index": 20, "enemies": [{ "type": "boss_kukucka_major", "count": 1, "delay": 0 }, { "type": "kotlar", "count": 17, "delay": 0.5 }, { "type": "navijac", "count": 3, "delay": 0.9 }] }
   ]
 }

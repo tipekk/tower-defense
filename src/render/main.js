@@ -629,9 +629,8 @@ function updateHud() {
   if (goldEl) goldEl.textContent = `${game.gold}`;
   const waveEl = document.getElementById('waveValue');
   // Wave numerator/denominator are LEVEL-LOCAL (nextMapWaveIdx resets to 0
-  // each level; game.waveNumber itself keeps climbing across both levels
-  // for HP-scaling purposes, see hpForWave() in entities/Enemy.js, so it
-  // isn't what the HUD should show once there's more than one level).
+  // each level; game.waveNumber itself keeps climbing across all levels,
+  // HP scaling uses game.levelWaveNumber instead -- see Game.startLevel()).
   if (waveEl) waveEl.textContent = `L${currentLevelIdx + 1} · ${nextMapWaveIdx}/${currentWaves().length}`;
 
   if (game.lives < prevLives) {
@@ -847,12 +846,14 @@ window.__bastionGrid = {
   // Level progression (task: level 2 + boss). Called by index.html/
   // preview.html's "Ďalší level" button once bastiongrid:levelcomplete
   // fires with final:false. Same Game instance/lives/gold/path carry over
-  // -- only the wave table (and HP-scaling continues climbing via
-  // game.waveNumber, unaffected) switches to the next, harder map.
+  // -- only the wave table switches to the next, harder map. HP scaling
+  // restarts per level (game.startLevel(), task Y); the level's difficulty
+  // comes from its map hpMultiplier.
   nextLevel: () => {
     if (currentLevelIdx >= LEVELS.length - 1) return false;
     currentLevelIdx += 1;
     nextMapWaveIdx = 0;
+    game.startLevel();
     return true;
   },
   getLevelInfo: () => ({

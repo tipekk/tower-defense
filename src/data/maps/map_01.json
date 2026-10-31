@@ -1,0 +1,59 @@
+{
+  "id": "map_01",
+  "name": "Prvá Bašta",
+  "mode": ["basic", "zombie"],
+  "width": 12,
+  "height": 12,
+  "tileLegend": {
+    ".": "grass",
+    "#": "path",
+    "^": "elevated",
+    "x": "decor"
+  },
+  "grid": [
+    "............",
+    "............",
+    "..x.........",
+    "..#.........",
+    "..#.........",
+    "..#.^.......",
+    "..#.........",
+    "..##########",
+    "...........#",
+    ".......^...#",
+    "...........#",
+    "...........#"
+  ],
+  "spawn": { "x": 2, "z": 3 },
+  "gate": { "x": 11, "z": 11 },
+  "waypoints": [
+    { "x": 2, "z": 3 },
+    { "x": 2, "z": 7 },
+    { "x": 11, "z": 7 },
+    { "x": 11, "z": 11 }
+  ],
+  "elevatedTiles": [
+    { "x": 4, "z": 5 },
+    { "x": 7, "z": 9 }
+  ],
+  "decorTiles": [
+    { "x": 2, "z": 2 }
+  ],
+  "waves": [
+    { "index": 1, "enemies": [{ "type": "basic_grunt", "count": 10, "delay": 0.8 }] },
+    { "index": 2, "enemies": [{ "type": "basic_grunt", "count": 12, "delay": 0.75 }] },
+    { "index": 3, "enemies": [{ "type": "basic_grunt", "count": 10, "delay": 0.7 }, { "type": "runner", "count": 4, "delay": 0.5 }] },
+    { "index": 4, "enemies": [{ "type": "runner", "count": 8, "delay": 0.5 }] },
+    { "index": 5, "enemies": [{ "type": "basic_grunt", "count": 14, "delay": 0.65 }] },
+    { "index": 6, "enemies": [{ "type": "armored_grunt", "count": 6, "delay": 0.9 }, { "type": "basic_grunt", "count": 8, "delay": 0.6 }] },
+    { "index": 7, "enemies": [{ "type": "runner", "count": 10, "delay": 0.45 }] },
+    { "index": 8, "enemies": [{ "type": "armored_grunt", "count": 12, "delay": 0.85 }] },
+    { "index": 9, "enemies": [{ "type": "basic_grunt", "count": 19, "delay": 0.55 }, { "type": "runner", "count": 7, "delay": 0.4 }] },
+    { "index": 10, "enemies": [{ "type": "armored_grunt", "count": 10, "delay": 0.8 }, { "type": "runner", "count": 10, "delay": 0.4 }] },
+    { "index": 11, "enemies": [{ "type": "basic_grunt", "count": 21, "delay": 0.5 }] },
+    { "index": 12, "enemies": [{ "type": "armored_grunt", "count": 14, "delay": 0.75 }] },
+    { "index": 13, "enemies": [{ "type": "runner", "count": 17, "delay": 0.35 }, { "type": "basic_grunt", "count": 12, "delay": 0.5 }] },
+    { "index": 14, "enemies": [{ "type": "armored_grunt", "count": 17, "delay": 0.7 }, { "type": "runner", "count": 12, "delay": 0.4 }] },
+    { "index": 15, "enemies": [{ "type": "boss_zombie_king", "count": 1, "delay": 0 }, { "type": "armored_grunt", "count": 12, "delay": 0.6 }] }
+  ]
+}
