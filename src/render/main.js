@@ -110,7 +110,9 @@ const MAP3_URL = 'src/data/maps/map_03.json';
 const map3Data = await fetch(MAP3_URL).then((r) => r.json());
 const MAP4_URL = 'src/data/maps/map_04.json';
 const map4Data = await fetch(MAP4_URL).then((r) => r.json());
-const LEVELS = [mapData, map2Data, map3Data, map4Data];
+const MAP5_URL = 'src/data/maps/map_05.json';
+const map5Data = await fetch(MAP5_URL).then((r) => r.json());
+const LEVELS = [mapData, map2Data, map3Data, map4Data, map5Data];
 let currentLevelIdx = 0;
 function currentWaves() { return LEVELS[currentLevelIdx].waves; }
 const grid = new Grid(mapData);
@@ -681,6 +683,8 @@ const ENEMY_ICON = {
   boss_kukucka_magnus: 'enemy-kukuckovy-kolos',
   boss_kukucka_imperator: 'enemy-kukuckovy-kolos',
   boss_kukucka_polovica: 'enemy-kukuckovy-kolos',
+  boss_kukucka_tyran: 'enemy-kukuckovy-kolos',
+  boss_kukucka_tretina: 'enemy-kukuckovy-kolos',
 };
 let shownPreviewIdx = -1;
 let shownPreviewLevel = -1;

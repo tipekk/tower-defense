@@ -119,6 +119,45 @@ export const ENEMY_TYPES = {
     splitCount: 2,
     splitHpPct: 0.22, // kazda polovica dostane 22 % maxHp rodica (spolu 44 % > zvysnych 33 %)
   },
+  // Level 5 boss (finale): Tyran. 6 faz omracenia, najrychlejsi a
+  // najpocetnejsi vypust, najsilnejsia liecivá aura, pri 30 % HP sa
+  // rozpadne na 3 tretiny (tyransky "rozkol").
+  boss_kukucka_tyran: {
+    name: 'Kukučkový kolos Tyran',
+    hp: 24000,
+    speed: 0.62,
+    bounty: 900,
+    isBoss: true,
+    livesCost: 14,
+    spawnInterval: 5,
+    spawnCount: 7,
+    spawnType: 'kotlar',
+    spawnTypes: ['kotlar', 'vazka', 'navijac', 'kotlar', 'vazka', 'kotlar', 'navijac'],
+    stunThresholds: [0.92, 0.78, 0.64, 0.5, 0.36, 0.3],
+    stunRadius: 5.5,
+    stunDuration: 2.7,
+    healRadius: 4,
+    healPctPerSec: 0.028,
+    splitAtPct: 0.3,
+    splitType: 'boss_kukucka_tretina',
+    splitCount: 3,
+    splitHpPct: 0.15, // 3x15 % = 45 % > zvysnych 30 %
+  },
+  // Tretina Tyrana: vznikne iba rozdelenim.
+  boss_kukucka_tretina: {
+    name: 'Tretina Tyrana',
+    hp: 3600,
+    speed: 0.85,
+    bounty: 260,
+    isBoss: true,
+    livesCost: 7,
+    spawnInterval: 9,
+    spawnCount: 2,
+    spawnType: 'vrtiak',
+    stunThresholds: [0.5],
+    stunRadius: 3,
+    stunDuration: 1.5,
+  },
   // Polovica Imperatora: vznikne iba rozdelenim (hp sa nastavi z rodica).
   boss_kukucka_polovica: {
     name: 'Polovica Imperátora',

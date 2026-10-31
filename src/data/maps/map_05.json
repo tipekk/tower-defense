@@ -1,0 +1,462 @@
+{
+  "id": "map_05",
+  "name": "Piata Bašta",
+  "mode": [
+    "basic",
+    "zombie"
+  ],
+  "width": 12,
+  "height": 12,
+  "tileLegend": {
+    ".": "grass",
+    "#": "path",
+    "^": "elevated",
+    "x": "decor"
+  },
+  "grid": [
+    "............",
+    "............",
+    "..x.........",
+    "..#.........",
+    "..#.........",
+    "..#.^.......",
+    "..#.........",
+    "..##########",
+    "...........#",
+    ".......^...#",
+    "...........#",
+    "...........#"
+  ],
+  "spawn": {
+    "x": 2,
+    "z": 3
+  },
+  "gate": {
+    "x": 11,
+    "z": 11
+  },
+  "waypoints": [
+    {
+      "x": 2,
+      "z": 3
+    },
+    {
+      "x": 2,
+      "z": 7
+    },
+    {
+      "x": 11,
+      "z": 7
+    },
+    {
+      "x": 11,
+      "z": 11
+    }
+  ],
+  "elevatedTiles": [
+    {
+      "x": 4,
+      "z": 5
+    },
+    {
+      "x": 7,
+      "z": 9
+    }
+  ],
+  "decorTiles": [
+    {
+      "x": 2,
+      "z": 2
+    }
+  ],
+  "description": "Level 5 (finale): rovnaky teren, nepriatelia x4.6 HP (hpMultiplier, HP skalovanie od 1. vlny levelu), boss Kukuckovy kolos Tyran (6 faz omracenia, najsilnejsia liecivá aura, pri 30 % sa rozdeli na 3 tretiny).",
+  "hpMultiplier": 4.6,
+  "bossHpMultiplier": 0.3,
+  "waves": [
+    {
+      "index": 1,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 13,
+          "delay": 0.47
+        },
+        {
+          "type": "vrtiak",
+          "count": 18,
+          "delay": 0.26
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 16,
+          "delay": 0.38
+        },
+        {
+          "type": "kotlar",
+          "count": 11,
+          "delay": 0.45
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 20,
+          "delay": 0.39
+        },
+        {
+          "type": "navijac",
+          "count": 3,
+          "delay": 0.7
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "enemies": [
+        {
+          "type": "vrtiak",
+          "count": 29,
+          "delay": 0.21
+        },
+        {
+          "type": "vazka",
+          "count": 13,
+          "delay": 0.36
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "enemies": [
+        {
+          "type": "navijac",
+          "count": 4,
+          "delay": 0.66
+        },
+        {
+          "type": "kotlar",
+          "count": 25,
+          "delay": 0.38
+        },
+        {
+          "type": "cvakac",
+          "count": 20,
+          "delay": 0.28
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 22,
+          "delay": 0.32
+        },
+        {
+          "type": "kotlar",
+          "count": 16,
+          "delay": 0.39
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 29,
+          "delay": 0.34
+        },
+        {
+          "type": "navijac",
+          "count": 6,
+          "delay": 0.61
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "enemies": [
+        {
+          "type": "vrtiak",
+          "count": 31,
+          "delay": 0.19
+        },
+        {
+          "type": "vazka",
+          "count": 18,
+          "delay": 0.32
+        },
+        {
+          "type": "navijac",
+          "count": 3,
+          "delay": 0.66
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 31,
+          "delay": 0.32
+        },
+        {
+          "type": "navijac",
+          "count": 6,
+          "delay": 0.56
+        },
+        {
+          "type": "vazka",
+          "count": 13,
+          "delay": 0.32
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 31,
+          "delay": 0.23
+        },
+        {
+          "type": "vrtiak",
+          "count": 29,
+          "delay": 0.19
+        },
+        {
+          "type": "kotlar",
+          "count": 18,
+          "delay": 0.36
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 29,
+          "delay": 0.28
+        },
+        {
+          "type": "navijac",
+          "count": 6,
+          "delay": 0.56
+        },
+        {
+          "type": "kotlar",
+          "count": 13,
+          "delay": 0.36
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 36,
+          "delay": 0.3
+        },
+        {
+          "type": "navijac",
+          "count": 7,
+          "delay": 0.55
+        },
+        {
+          "type": "vrtiak",
+          "count": 20,
+          "delay": 0.19
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 27,
+          "delay": 0.28
+        },
+        {
+          "type": "kotlar",
+          "count": 27,
+          "delay": 0.32
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "enemies": [
+        {
+          "type": "navijac",
+          "count": 7,
+          "delay": 0.52
+        },
+        {
+          "type": "kotlar",
+          "count": 34,
+          "delay": 0.3
+        },
+        {
+          "type": "vazka",
+          "count": 18,
+          "delay": 0.28
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 34,
+          "delay": 0.21
+        },
+        {
+          "type": "vrtiak",
+          "count": 34,
+          "delay": 0.17
+        },
+        {
+          "type": "kotlar",
+          "count": 22,
+          "delay": 0.32
+        },
+        {
+          "type": "navijac",
+          "count": 4,
+          "delay": 0.56
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 38,
+          "delay": 0.28
+        },
+        {
+          "type": "navijac",
+          "count": 8,
+          "delay": 0.52
+        },
+        {
+          "type": "vazka",
+          "count": 20,
+          "delay": 0.28
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 34,
+          "delay": 0.24
+        },
+        {
+          "type": "vrtiak",
+          "count": 31,
+          "delay": 0.17
+        },
+        {
+          "type": "navijac",
+          "count": 7,
+          "delay": 0.52
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 43,
+          "delay": 0.26
+        },
+        {
+          "type": "navijac",
+          "count": 9,
+          "delay": 0.47
+        },
+        {
+          "type": "vazka",
+          "count": 16,
+          "delay": 0.28
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 29,
+          "delay": 0.19
+        },
+        {
+          "type": "vrtiak",
+          "count": 29,
+          "delay": 0.17
+        },
+        {
+          "type": "kotlar",
+          "count": 34,
+          "delay": 0.28
+        },
+        {
+          "type": "vazka",
+          "count": 22,
+          "delay": 0.26
+        },
+        {
+          "type": "navijac",
+          "count": 8,
+          "delay": 0.47
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "enemies": [
+        {
+          "type": "boss_kukucka_tyran",
+          "count": 1,
+          "delay": 0
+        },
+        {
+          "type": "kotlar",
+          "count": 27,
+          "delay": 0.36
+        },
+        {
+          "type": "navijac",
+          "count": 7,
+          "delay": 0.56
+        },
+        {
+          "type": "vazka",
+          "count": 16,
+          "delay": 0.3
+        }
+      ]
+    }
+  ]
+}

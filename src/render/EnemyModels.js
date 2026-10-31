@@ -1355,13 +1355,17 @@ function createNavijac() {
 // Uloha X: variant moze byt aj cislo "tier" -- 2 = Magnus (level 3, medeny
 // lak + zelena liecivá aura, parne trubky), 3 = Imperator (level 4, ebenova
 // skrina + zlato/fialova, korunka z ozubenych kolies, naplecniky),
-// 4 = Polovica Imperatora (uzsia "rozpolena" skrina s trhlinou).
+// 4 = Polovica Imperatora (uzsia "rozpolena" skrina s trhlinou),
+// 5 = Tyran (level 5 finale, krvavo-cierna skrina + horuca medena/cervena,
+// najvacsi), 6 = Tretina Tyrana (rozpoleny ulomok).
 const KU_TIERS = [
   { type: 'boss_kukucka', scale: 0.86 },
   { type: 'boss_kukucka_major', scale: 1.18 },
   { type: 'boss_kukucka_magnus', scale: 1.32, walnut: 0x2f3d2c, brass: 0xb87333, zc: 0x5dbb63, red: 0x2ec27e, eye: 0x5dff9a, aura: 0x5dff9a },
   { type: 'boss_kukucka_imperator', scale: 1.45, walnut: 0x2a1f3a, brass: 0xd4af37, zc: 0xb05dff, red: 0x8e44ad, eye: 0xc04dff, aura: 0xc04dff },
   { type: 'boss_kukucka_polovica', scale: 1.0, walnut: 0x2a1f3a, brass: 0xd4af37, zc: 0xb05dff, red: 0x8e44ad, eye: 0xc04dff },
+  { type: 'boss_kukucka_tyran', scale: 1.58, walnut: 0x1a1012, brass: 0xc0392b, zc: 0xff5a3c, red: 0xff5a3c, eye: 0xff3b1f, aura: 0xff3b1f },
+  { type: 'boss_kukucka_tretina', scale: 1.05, walnut: 0x1a1012, brass: 0xc0392b, zc: 0xff5a3c, red: 0xff5a3c, eye: 0xff3b1f },
 ];
 function createKukucka(variant = false) {
   const tier = variant === true ? 1 : (typeof variant === 'number' ? variant : 0);
@@ -1389,8 +1393,8 @@ function createKukucka(variant = false) {
   E.pulsing = true;
 
   rig.scale.setScalar(TT.scale);
-  // Polovica: uzsia (rozpolena) skrina.
-  if (tier === 4) rig.scale.set(TT.scale * 0.62, TT.scale, TT.scale);
+  // Polovica/Tretina: uzsia (rozpolena) skrina.
+  if (tier === 4 || tier === 6) rig.scale.set(TT.scale * 0.62, TT.scale, TT.scale);
   const body = new THREE.Group();
   body.position.y = 0.62;
   rig.add(body);
@@ -1613,14 +1617,14 @@ function createKukucka(variant = false) {
       puffs.push(puff);
     });
   }
-  if (tier >= 3) {
-    // Korunka z ozubenych kolies (Imperator aj jeho polovice).
+  if (tier >= 3 && tier !== 4) {
+    // Korunka z ozubenych kolies (Imperator/Tyran aj ich polovicne ulomky).
     [[-0.36, 1.5, 0.16, 10], [0.36, 1.5, 0.16, 10], [0, 1.98, 0.22, 14]].forEach(([x, y, r, n], i) => {
-      if (tier === 4 && i === 1) return;
+      if (tier === 6 && i === 1) return;
       crownGears.push(add(body, gearGeo(r, r * 0.82, n, 0.04, 0.03), brass, x, y, -0.05));
     });
   }
-  if (tier === 3) {
+  if (tier === 3 || tier === 5) {
     // Naplecniky s hrotmi.
     [-1, 1].forEach((sd) => {
       add(body, G('ku_pauldron', () => merge([
@@ -1631,7 +1635,7 @@ function createKukucka(variant = false) {
       ])), brass, 0.56 * sd, 1.05, 0);
     });
   }
-  if (tier === 4) {
+  if (tier === 4 || tier === 6) {
     // Trhlina po rozdeleni: zubaty okraj na jednej strane.
     add(body, G('ku_crack', () => {
       const parts = [];
@@ -1851,6 +1855,8 @@ const FACTORIES = {
   boss_kukucka_magnus: () => createKukucka(2),
   boss_kukucka_imperator: () => createKukucka(3),
   boss_kukucka_polovica: () => createKukucka(4),
+  boss_kukucka_tyran: () => createKukucka(5),
+  boss_kukucka_tretina: () => createKukucka(6),
 };
 
 export const ENEMY_MODEL_TYPES = Object.keys(FACTORIES);
