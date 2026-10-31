@@ -32,6 +32,7 @@ const DIAGONAL_FACTOR = Math.SQRT2;
 // their real size via setFitExtent(); these are just safe fallbacks.
 let gridHalfExtent = 9;
 let heightMargin = 2;
+const PORTRAIT_CROP = 0.72;
 const FIT_PADDING = 1.04; // small breathing room so edges aren't razor-tight (task S: tightened from 1.08 -- the grid was reading small/distant even on a big canvas)
 
 /**
@@ -91,7 +92,11 @@ function panBy(dx, dz) {
 function computeFitViewSize(aspect) {
   const horizontalReach = gridHalfExtent * DIAGONAL_FACTOR;
   const verticalReach = Math.sin(ISO_PITCH) * horizontalReach + heightMargin * Math.cos(ISO_PITCH);
-  return Math.max(verticalReach, horizontalReach / aspect) * FIT_PADDING;
+  // Portrait phones (task W): a square grid projects to a wide diamond,
+  // so fitting its full width leaves most of a tall screen empty. Crop
+  // the far-left/right tips a bit instead; pan reaches them.
+  const hReach = aspect < 0.8 ? horizontalReach * PORTRAIT_CROP : horizontalReach;
+  return Math.max(verticalReach, hReach / aspect) * FIT_PADDING;
 }
 
 /**
