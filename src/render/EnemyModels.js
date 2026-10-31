@@ -1351,27 +1351,46 @@ function createNavijac() {
 // bigger, with hotter brass-gone-red trim (steampunk "overheated" look) and
 // a extra warning ring around the clock face so it reads as a tougher,
 // later-game threat at a glance -- not just a bigger number on the HP bar.
-function createKukucka(major = false) {
-  const E = scaffold(major ? 'boss_kukucka_major' : 'boss_kukucka');
+//
+// Uloha X: variant moze byt aj cislo "tier" -- 2 = Magnus (level 3, medeny
+// lak + zelena liecivá aura, parne trubky), 3 = Imperator (level 4, ebenova
+// skrina + zlato/fialova, korunka z ozubenych kolies, naplecniky),
+// 4 = Polovica Imperatora (uzsia "rozpolena" skrina s trhlinou).
+const KU_TIERS = [
+  { type: 'boss_kukucka', scale: 0.86 },
+  { type: 'boss_kukucka_major', scale: 1.18 },
+  { type: 'boss_kukucka_magnus', scale: 1.32, walnut: 0x2f3d2c, brass: 0xb87333, zc: 0x5dbb63, red: 0x2ec27e, eye: 0x5dff9a, aura: 0x5dff9a },
+  { type: 'boss_kukucka_imperator', scale: 1.45, walnut: 0x2a1f3a, brass: 0xd4af37, zc: 0xb05dff, red: 0x8e44ad, eye: 0xc04dff, aura: 0xc04dff },
+  { type: 'boss_kukucka_polovica', scale: 1.0, walnut: 0x2a1f3a, brass: 0xd4af37, zc: 0xb05dff, red: 0x8e44ad, eye: 0xc04dff },
+];
+function createKukucka(variant = false) {
+  const tier = variant === true ? 1 : (typeof variant === 'number' ? variant : 0);
+  const major = tier >= 1;
+  const TT = KU_TIERS[tier] || KU_TIERS[0];
+  const E = scaffold(TT.type);
   const { rig, kit, st } = E;
   st.walkRate = 3.6;
   st.keyRate = 1.8;
 
-  const walnut = kit.mat(major ? 0x5a2a1c : 0x6e4226, { r: 0.55, m: 0.05, zk: 0.45 });
+  const walnut = kit.mat(TT.walnut ?? (major ? 0x5a2a1c : 0x6e4226), { r: 0.55, m: 0.05, zk: 0.45 });
   const darkWood = kit.mat(0x9a5f36, { r: 0.6, m: 0.05, zk: 0.35, flat: true });
   const lightWood = kit.mat(0xb07a45, { r: 0.5, m: 0.05, zk: 0.45 });
   const cream = kit.mat(0xf1e4c8, { r: 0.45, m: 0, zk: 0.4 });
-  const brass = kit.mat(major ? 0xc9a227 : 0xe0b43a, { r: 0.28, m: 0.6, zc: major ? 0xe4572e : 0x7f8f5a });
+  const brass = kit.mat(TT.brass ?? (major ? 0xc9a227 : 0xe0b43a), { r: 0.28, m: 0.6, zc: TT.zc ?? (major ? 0xe4572e : 0x7f8f5a) });
   const dial = kit.mat(0xffffff, { vc: true, r: 0.4, m: 0, zc: 0xb9c9a6 });
   const black = kit.mat(0x18161a, { r: 0.35, m: 0.2, zk: 0.15 });
-  const red = kit.mat(major ? 0xe4572e : 0xd7262e, { r: 0.3, m: 0.05, zk: 0.55 });
+  const red = kit.mat(TT.red ?? (major ? 0xe4572e : 0xd7262e), { r: 0.3, m: 0.05, zk: 0.55 });
   const bird = kit.mat(0xffffff, { vc: true, r: 0.4, m: 0, zc: 0xb9d9a0 });
-  const eyes = kit.mat(0xffe9a0, major
+  const eyes = kit.mat(0xffe9a0, TT.eye
+    ? { e: TT.eye, ei: 2.6, r: 0.2, m: 0, zc: 0xcfff80, ze: TT.eye }
+    : major
     ? { e: 0xff3a1a, ei: 2.4, r: 0.2, m: 0, zc: 0xcfff80, ze: 0xff3a1a }
     : { e: 0xffb000, ei: 1.4, r: 0.2, m: 0, zc: 0xcfff80, ze: 0x9ef01a });
   E.pulsing = true;
 
-  rig.scale.setScalar(major ? 1.18 : 0.86);
+  rig.scale.setScalar(TT.scale);
+  // Polovica: uzsia (rozpolena) skrina.
+  if (tier === 4) rig.scale.set(TT.scale * 0.62, TT.scale, TT.scale);
   const body = new THREE.Group();
   body.position.y = 0.62;
   rig.add(body);
@@ -1570,6 +1589,57 @@ function createKukucka(major = false) {
     false
   );
 
+  // ---- Uloha X: doplnky vyssich tierov (iba primitiva) ----
+  let aura = null;
+  let auraMat = null;
+  const crownGears = [];
+  const puffs = [];
+  if (TT.aura) {
+    // Liecivá aura: ziariaci prstenec pri zemi (radius ~ healRadius v hre).
+    auraMat = kit.mat(TT.aura, { e: TT.aura, ei: 1.8, r: 0.3, m: 0, ze: TT.aura });
+    aura = add(rig, G('ku_aura', () => new THREE.TorusGeometry(1.0, 0.035, 8, 48)), auraMat, 0, 0.04, 0, Math.PI / 2, 0, 0, false);
+  }
+  if (tier === 2) {
+    // Medene parne trubky na streche + obláčiky pary.
+    const steam = kit.mat(0xe8f5e9, { r: 0.9, m: 0, e: 0x5dff9a, ei: 0.25, zc: 0xb9d9a0 });
+    [-1, 1].forEach((sd) => {
+      add(body, G('ku_pipe', () => merge([
+        [cyl(0.05, 0.06, 0.5, 10), M(0, 0.25, 0)],
+        [new THREE.TorusGeometry(0.065, 0.018, 6, 12), M(0, 0.12, 0, Math.PI / 2)],
+        [new THREE.TorusGeometry(0.065, 0.018, 6, 12), M(0, 0.42, 0, Math.PI / 2)],
+        [cyl(0.075, 0.05, 0.06, 10), M(0, 0.52, 0)],
+      ])), brass, 0.32 * sd, 1.2, -0.22);
+      const puff = add(body, G('ku_puff', () => sph(0.08, 8, 6)), steam, 0.32 * sd, 1.8, -0.22, 0, 0, 0, false);
+      puffs.push(puff);
+    });
+  }
+  if (tier >= 3) {
+    // Korunka z ozubenych kolies (Imperator aj jeho polovice).
+    [[-0.36, 1.5, 0.16, 10], [0.36, 1.5, 0.16, 10], [0, 1.98, 0.22, 14]].forEach(([x, y, r, n], i) => {
+      if (tier === 4 && i === 1) return;
+      crownGears.push(add(body, gearGeo(r, r * 0.82, n, 0.04, 0.03), brass, x, y, -0.05));
+    });
+  }
+  if (tier === 3) {
+    // Naplecniky s hrotmi.
+    [-1, 1].forEach((sd) => {
+      add(body, G('ku_pauldron', () => merge([
+        [sph(0.2, 12, 8, 0, TAU, 0, Math.PI / 2), M(0, 0, 0, 0, 0, 0, 1, 0.7, 1)],
+        [new THREE.ConeGeometry(0.04, 0.16, 6), M(0, 0.18, 0)],
+        [new THREE.ConeGeometry(0.035, 0.13, 6), M(0.1, 0.12, 0, 0, 0, -0.6)],
+        [new THREE.ConeGeometry(0.035, 0.13, 6), M(-0.1, 0.12, 0, 0, 0, 0.6)],
+      ])), brass, 0.56 * sd, 1.05, 0);
+    });
+  }
+  if (tier === 4) {
+    // Trhlina po rozdeleni: zubaty okraj na jednej strane.
+    add(body, G('ku_crack', () => {
+      const parts = [];
+      for (let i = 0; i < 6; i++) parts.push([new THREE.ConeGeometry(0.06, 0.18, 4), M(0.53, 0.1 + i * 0.2, 0.0, 0, 0, -Math.PI / 2 + (i % 2 ? 0.4 : -0.4))]);
+      return merge(parts);
+    }), black, 0, 0, 0, 0, 0, 0, false);
+  }
+
   // Cuckoo door + bird
   add(body, G('ku_hole', () => box(0.2, 0.2, 0.02)), black, 0, 0.98, 0.315, 0, 0, 0, false);
   const doorPiv = new THREE.Group();
@@ -1752,6 +1822,18 @@ function createKukucka(major = false) {
     eyes.userData.pulse = 0.8 + 0.3 * Math.sin(t * 2.5 + st.seed) + (open > 0.5 ? 0.6 : 0);
     key.spin.rotation.y = st.keyAngle;
     if (warnRing) warnRing.scale.setScalar(1 + 0.08 * Math.sin(t * 5 + st.seed));
+    if (aura) {
+      aura.rotation.z = t * 0.6;
+      aura.scale.setScalar(1 + 0.1 * Math.sin(t * 2.2 + st.seed));
+      auraMat.userData.pulse = 0.7 + 0.4 * Math.sin(t * 2.2 + st.seed);
+    }
+    for (let i = 0; i < crownGears.length; i++) crownGears[i].rotation.z = st.keyAngle * (i % 2 ? -2 : 2);
+    for (let i = 0; i < puffs.length; i++) {
+      const c = (t * 0.8 + i * 0.5 + st.seed) % 1;
+      puffs[i].position.y = 1.8 + c * 0.45;
+      puffs[i].scale.setScalar(0.6 + c * 1.6);
+      puffs[i].visible = c < 0.85;
+    }
   });
   return E.group;
 }
@@ -1766,6 +1848,9 @@ const FACTORIES = {
   navijac: createNavijac,
   boss_kukucka: createKukucka,
   boss_kukucka_major: () => createKukucka(true),
+  boss_kukucka_magnus: () => createKukucka(2),
+  boss_kukucka_imperator: () => createKukucka(3),
+  boss_kukucka_polovica: () => createKukucka(4),
 };
 
 export const ENEMY_MODEL_TYPES = Object.keys(FACTORIES);

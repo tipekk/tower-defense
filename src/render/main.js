@@ -31,7 +31,7 @@ import { openRadialMenu, closeRadialMenu } from '../ui/RadialMenu.js';
 import { Grid } from '../world/Grid.js';
 import { Path } from '../world/Path.js';
 import { Game, GAME_STATES } from '../core/Game.js';
-import { TOWER_TYPES } from '../entities/Tower.js';
+import { TOWER_TYPES, LEVEL3_SPECIAL, MAX_TOWER_LEVEL } from '../entities/Tower.js';
 import { ENEMY_TYPES } from '../entities/Enemy.js';
 import { buildUniformWave } from '../systems/Waves.js';
 
@@ -104,7 +104,13 @@ const mapData = await fetch(MAP_URL).then((r) => r.json());
 // for both levels, so no second Scene/Grid/Path has to be constructed.
 const MAP2_URL = 'src/data/maps/map_02.json';
 const map2Data = await fetch(MAP2_URL).then((r) => r.json());
-const LEVELS = [mapData, map2Data];
+// Level 3 a 4 (uloha X): rovnaky teren/cesta ako map_01, iba vlny + HP
+// multiplikatory (hpMultiplier / bossHpMultiplier v map JSON) a novi bossovia.
+const MAP3_URL = 'src/data/maps/map_03.json';
+const map3Data = await fetch(MAP3_URL).then((r) => r.json());
+const MAP4_URL = 'src/data/maps/map_04.json';
+const map4Data = await fetch(MAP4_URL).then((r) => r.json());
+const LEVELS = [mapData, map2Data, map3Data, map4Data];
 let currentLevelIdx = 0;
 function currentWaves() { return LEVELS[currentLevelIdx].waves; }
 const grid = new Grid(mapData);
@@ -139,7 +145,7 @@ function gridToWorld(centeredX, centeredZ) {
 // Waves/Economy -- this file is the sole bridge to the renderer.
 // ---------------------------------------------------------------------------
 const START_LIVES = 20;
-const game = new Game({ path: gamePath, startLives: START_LIVES, startGold: 150 });
+const game = new Game({ path: gamePath, startLives: START_LIVES }); // start gold: Economy.STARTING_GOLD
 game.start();
 
 // map_01.json's own `waves` array was authored by an earlier task with its
@@ -164,7 +170,17 @@ function buildSpawnListForMapWave(mapWave) {
     // only fall back to the legacy alias/placeholder-default when the type
     // isn't already a real ENEMY_TYPES key.
     const type = ENEMY_TYPES[group.type] ? group.type : (MAP_ENEMY_ALIAS[group.type] || 'cvakac');
-    list.push(...buildUniformWave(type, group.count, group.delay));
+    // Level HP multiplikator (uloha X): bezni nepriatelia hpMultiplier,
+    // bossovia bossHpMultiplier; bossove miniony dostanu hpMultiplier.
+    const lvl = LEVELS[currentLevelIdx] || {};
+    const hpm = lvl.hpMultiplier || 1;
+    const isBoss = !!ENEMY_TYPES[type]?.isBoss;
+    const entries = buildUniformWave(type, group.count, group.delay);
+    for (const en of entries) {
+      en.hpMult = isBoss ? (lvl.bossHpMultiplier || 1) : hpm;
+      if (isBoss) en.minionHpMult = hpm;
+    }
+    list.push(...entries);
   }
   return list;
 }
@@ -426,7 +442,7 @@ function iconImg(id) {
 
 function towerChoices() {
   return TOWER_KEYS.map((id) => {
-    const cost = TOWER_TYPES[id].cost;
+    const cost = game.towerCost(id); // +10 % per tower of same type (task Y)
     const afford = game.economy.canAfford(cost);
     return {
       id,
@@ -442,13 +458,25 @@ function towerChoices() {
   });
 }
 
+function levelStars(level) {
+  return '★'.repeat(level) + '☆'.repeat(Math.max(0, MAX_TOWER_LEVEL - level));
+}
+
 function towerActions(t) {
   const up = t.getUpgradeCost();
-  const sell = t.sell();
+  const sell = game.sellValue(t);
+  const stars = levelStars(t.level);
+  let upgrade;
+  if (up == null) {
+    upgrade = { id: 'upgrade', label: `Max. úroveň (${stars}) – ${LEVEL3_SPECIAL[t.type] || ''}`, name: `MAX ${stars}`, icon: '★', disabled: true, blockedMsg: `Veža je na max. úrovni – ${LEVEL3_SPECIAL[t.type] || ''}`, onBlocked: showHudToast };
+  } else {
+    const afford = game.economy.canAfford(up);
+    const next = t.level + 1;
+    const special = next === MAX_TOWER_LEVEL && LEVEL3_SPECIAL[t.type] ? ` + ${LEVEL3_SPECIAL[t.type]}` : '';
+    upgrade = { id: 'upgrade', label: `Vylepšiť na úr. ${next} – ${up} zlata${special}`, name: `${stars} → ${next}`, icon: '⬆', price: up, priceBad: !afford, disabled: !afford, blockedMsg: `Nedostatok zlata (${up})`, onBlocked: showHudToast };
+  }
   return [
-    up == null
-      ? { id: 'upgrade', label: 'Max. úroveň', name: 'MAX', icon: '★', disabled: true, blockedMsg: 'Veža je na max. úrovni', onBlocked: showHudToast }
-      : { id: 'upgrade', label: `Vylepšiť – ${up} zlata`, name: `Úr. ${t.level + 1}`, icon: '⬆', price: up, priceBad: !game.economy.canAfford(up), disabled: !game.economy.canAfford(up), blockedMsg: `Nedostatok zlata (${up})`, onBlocked: showHudToast },
+    upgrade,
     { id: 'target', label: 'Cieľenie', name: t.strategy === 'first' ? 'Prvý' : 'Najsilnejší', icon: '◎' },
     { id: 'sell', label: `Predať za ${sell}`, name: 'Predať', icon: '✕', price: `+${sell}` },
   ];
@@ -482,10 +510,11 @@ function onSelectTile(tileObj, screenX, screenY) {
     { x: screenX - rect.left, y: screenY - rect.top },
     towerChoices(),
     (id) => {
+      const price = game.towerCost(id);
       const tower = game.buildTower(id, tileObj.userData.centeredX, tileObj.userData.centeredZ);
       if (tower) {
         spawnTowerMesh(tower, tileObj.userData.centeredX, tileObj.userData.centeredZ, surfaceY);
-        showHudToast(`${TOWER_TYPES[id].name} postavená (−${TOWER_TYPES[id].cost})`);
+        showHudToast(`${TOWER_TYPES[id].name} postavená (−${price})`);
       } else {
         showHudToast('Nedostatok zlata');
       }
@@ -520,12 +549,15 @@ function onSelectTower(towerObj) {
         const cost = logicTower.getUpgradeCost();
         if (cost == null) { showHudToast('Veža je na max. úrovni'); }
         else if (!game.economy.canAfford(cost)) { showHudToast('Nedostatok zlata'); }
-        else { game.upgradeTower(logicTower); showHudToast(`Vylepšené na úroveň ${logicTower.level} (−${cost})`); }
+        else if (game.upgradeTower(logicTower)) {
+          const sp = logicTower.level === MAX_TOWER_LEVEL && LEVEL3_SPECIAL[logicTower.type] ? ` · ${LEVEL3_SPECIAL[logicTower.type]}` : '';
+          showHudToast(`Vylepšené na úroveň ${logicTower.level} ${levelStars(logicTower.level)} (−${cost})${sp}`);
+        }
       } else if (id === 'target') {
         logicTower.strategy = logicTower.strategy === 'first' ? 'strongest' : 'first';
         showHudToast(`Cieľenie: ${logicTower.strategy === 'first' ? 'Prvý' : 'Najsilnejší'}`);
       } else if (id === 'sell') {
-        const refund = logicTower.sell();
+        const refund = game.sellValue(logicTower);
         game.sellTower(logicTower);
         removeTowerMesh(logicTower);
         fx.goldLabel(towerObj.position, refund);
@@ -647,6 +679,9 @@ const ENEMY_ICON = {
   // Level 2 boss reuses the base boss's icon art -- no separate asset,
   // the model itself is what reads as the bigger/tougher variant in-scene.
   boss_kukucka_major: 'enemy-kukuckovy-kolos',
+  boss_kukucka_magnus: 'enemy-kukuckovy-kolos',
+  boss_kukucka_imperator: 'enemy-kukuckovy-kolos',
+  boss_kukucka_polovica: 'enemy-kukuckovy-kolos',
 };
 let shownPreviewIdx = -1;
 let shownPreviewLevel = -1;
@@ -734,6 +769,7 @@ function animate() {
       if (ud.fire) ud.fire();
       if (ud.muzzle) { ud.muzzle.getWorldPosition(_aim); fx.muzzleFlash(_aim, lt.type); }
     }
+    if (ud.levelPips) ud.levelPips.rotation.y = Math.atan2(camera.position.x - mesh.position.x, camera.position.z - mesh.position.z);
     if (ud.update) ud.update(simDt, t);
   }
 

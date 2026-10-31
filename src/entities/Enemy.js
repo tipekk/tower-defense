@@ -15,7 +15,7 @@ export const ENEMY_TYPES = {
     name: 'Vrtiak',
     hp: 25,
     speed: 1.8,
-    bounty: 6,
+    bounty: 5,
     onHitSpeedBoostMult: 1.5, // +50% speed
     onHitSpeedBoostDuration: 0.5,
   },
@@ -23,7 +23,7 @@ export const ENEMY_TYPES = {
     name: 'Kotlár',
     hp: 120,
     speed: 0.7,
-    bounty: 12,
+    bounty: 11,
     armor: 5,                 // -5 dmg from each hit while armored
     armorBreakHpPct: 0.5,     // loses armor at 50% hp
     armorBreakSpeedMult: 1.3, // +30% speed once armor breaks
@@ -32,14 +32,14 @@ export const ENEMY_TYPES = {
     name: 'Mosadzná vážka',
     hp: 50,
     speed: 1.2,
-    bounty: 10,
+    bounty: 9,
     flying: true, // cannon cannot hit it
   },
   navijac: {
     name: 'Navíjač',
     hp: 70,
     speed: 0.8,
-    bounty: 15,
+    bounty: 13,
     buffRadius: 1.5,
     buffSpeedMult: 1.25, // +25% speed to allies in radius
   },
@@ -75,11 +75,76 @@ export const ENEMY_TYPES = {
     stunRadius: 4,
     stunDuration: 2.0,
   },
+  // Level 3 boss (uloha X): este vacsi kolos. 4 fazy omracenia, rychlejsi
+  // vypust (striedavo kotlar/navijac) a liecivá aura -- kazdu sekundu
+  // dolieci beznym spojencom v healRadius healPctPerSec ich max HP.
+  boss_kukucka_magnus: {
+    name: 'Kukučkový kolos Magnus',
+    hp: 8000,
+    speed: 0.55,
+    bounty: 420,
+    isBoss: true,
+    livesCost: 10,
+    spawnInterval: 7,
+    spawnCount: 5,
+    spawnType: 'kotlar',
+    spawnTypes: ['kotlar', 'navijac', 'kotlar', 'kotlar', 'navijac'],
+    stunThresholds: [0.8, 0.6, 0.4, 0.2],
+    stunRadius: 4.5,
+    stunDuration: 2.2,
+    healRadius: 3,
+    healPctPerSec: 0.03,
+  },
+  // Level 4 boss (uloha X): najtazsi kolos. 5 faz omracenia, najrychlejsi
+  // vypust (kotlar/vazka/navijac), silnejsia liecivá aura a pri 33 % HP sa
+  // (ako Pacient nula) rozdeli na 2 polovice (boss_kukucka_polovica).
+  boss_kukucka_imperator: {
+    name: 'Kukučkový kolos Imperátor',
+    hp: 14000,
+    speed: 0.6,
+    bounty: 700,
+    isBoss: true,
+    livesCost: 12,
+    spawnInterval: 6,
+    spawnCount: 6,
+    spawnType: 'kotlar',
+    spawnTypes: ['kotlar', 'vazka', 'navijac', 'kotlar', 'vazka', 'kotlar'],
+    stunThresholds: [0.9, 0.75, 0.6, 0.45, 0.34],
+    stunRadius: 5,
+    stunDuration: 2.5,
+    healRadius: 3.5,
+    healPctPerSec: 0.04,
+    splitAtPct: 0.33,
+    splitType: 'boss_kukucka_polovica',
+    splitCount: 2,
+    splitHpPct: 0.22, // kazda polovica dostane 22 % maxHp rodica (spolu 44 % > zvysnych 33 %)
+  },
+  // Polovica Imperatora: vznikne iba rozdelenim (hp sa nastavi z rodica).
+  boss_kukucka_polovica: {
+    name: 'Polovica Imperátora',
+    hp: 3000,
+    speed: 0.8,
+    bounty: 220,
+    isBoss: true,
+    livesCost: 6,
+    spawnInterval: 8,
+    spawnCount: 2,
+    spawnType: 'vrtiak',
+    stunThresholds: [0.5],
+    stunRadius: 3,
+    stunDuration: 1.5,
+  },
 };
 
+/** HP scaling per wave for regular enemies (task Y: +12 % -> +17 % per wave). */
+export const HP_SCALE_PER_WAVE = 0.17;
+/** Bosses keep the original +12 %/wave curve (their own tuning lives with the boss stats). */
+export const BOSS_HP_SCALE_PER_WAVE = 0.12;
+
 /** HP scaling by wave number (wave 1 = base). */
-export function hpForWave(baseHp, wave) {
-  return baseHp * (1 + 0.12 * (wave - 1));
+export function hpForWave(baseHp, wave, isBoss = false) {
+  const k = isBoss ? BOSS_HP_SCALE_PER_WAVE : HP_SCALE_PER_WAVE;
+  return baseHp * (1 + k * (wave - 1));
 }
 
 let _nextEnemyId = 1;
@@ -99,11 +164,15 @@ export class Enemy {
     this.path = path;
 
     this.baseSpeed = cfg.speed;
-    this.maxHp = hpForWave(cfg.hp, wave);
+    this.maxHp = hpForWave(cfg.hp, wave, !!cfg.isBoss);
     this.hp = this.maxHp;
     this.bounty = cfg.bounty;
     this.flying = !!cfg.flying;
     this.livesCost = cfg.isBoss ? cfg.livesCost : 1;
+    // Level HP multiplikator (map JSON hpMultiplier, uloha X); nastavuje
+    // WaveRunner cez applyHpMultiplier(). Bossovia ho drzia aj pre minionov.
+    this.hpMult = 1;
+    this.minionHpMult = 1;
 
     this.t = 0; // 0 = spawn, 1 = reached gate
     this.alive = true;
@@ -139,6 +208,14 @@ export class Enemy {
     this._updatePosition();
   }
 
+  /** Vynasobi max/aktualne HP (level hpMultiplier z map JSON). */
+  applyHpMultiplier(mult) {
+    if (!(mult > 0) || mult === 1) return;
+    this.hpMult *= mult;
+    this.maxHp *= mult;
+    this.hp = this.maxHp;
+  }
+
   get cfg() {
     return ENEMY_TYPES[this.type];
   }
@@ -151,6 +228,14 @@ export class Enemy {
       dealt = Math.max(0, amount - this.armor);
     }
     this.hp -= dealt;
+
+    // Boss so splitAtPct (Imperator): pod prahom neumrie hned -- Game ho v
+    // dalsom ticku rozdeli na polovice (aj ked jeden zasah preleti cez prah).
+    const splitPct = this.cfg.splitAtPct;
+    if (splitPct && !this._splitDone && this.hp <= this.maxHp * splitPct) {
+      this.hp = Math.max(this.hp, 1);
+      this._splitPending = true;
+    }
 
     if (this.type === 'kotlar' && !this.armorBroken && this.hp <= this.maxHp * this.cfg.armorBreakHpPct) {
       this.armorBroken = true;
