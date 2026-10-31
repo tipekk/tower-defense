@@ -613,7 +613,14 @@ function updateHud() {
   prevLives = game.lives;
 
   if (game.state !== prevState) {
-    if (game.state === GAME_STATES.LOST) showHudToast('Základňa padla — hra skončila');
+    if (game.state === GAME_STATES.LOST) {
+      // index.html/preview.html listen for this to show the themed
+      // "Game Over" modal/animation (Basic vs Zombie) instead of just
+      // silently stopping (previously: no UI at all once lives hit 0).
+      window.dispatchEvent(new CustomEvent('bastiongrid:gameover', {
+        detail: { theme: themeKey, level: currentLevelIdx + 1 },
+      }));
+    }
     if (game.state === GAME_STATES.WON) {
       const levelDone = nextMapWaveIdx >= currentWaves().length;
       if (levelDone) {
@@ -782,6 +789,7 @@ animate();
 // the automated screenshot harness).
 window.__bastionGrid = {
   setTheme,
+  getTheme: () => themeKey,
   rotateCamera: () => { rotateIso90(camera, CAM_DIST); inputController.applyCamera(); },
   setSpeed: (mult) => { speedMultiplier = mult; },
   togglePause: () => {
