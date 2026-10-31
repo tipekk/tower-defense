@@ -98,6 +98,15 @@ scene.add(sky);
 // preview.html behaving identically.
 const MAP_URL = 'src/data/maps/map_01.json';
 const mapData = await fetch(MAP_URL).then((r) => r.json());
+// Level 2 (po 15 vlnach level 1 ide dalsi, tazsi level so stejnym terenom):
+// map_02.json reuses map_01's exact grid/path/mode, only its `waves` array
+// is used below -- the tile grid/enemy path stay built from map_01 (mapData)
+// for both levels, so no second Scene/Grid/Path has to be constructed.
+const MAP2_URL = 'src/data/maps/map_02.json';
+const map2Data = await fetch(MAP2_URL).then((r) => r.json());
+const LEVELS = [mapData, map2Data];
+let currentLevelIdx = 0;
+function currentWaves() { return LEVELS[currentLevelIdx].waves; }
 const grid = new Grid(mapData);
 const GRID_SIZE = grid.width; // map_01 is square (12x12); createTileGrid assumes square
 const gridOffset = (GRID_SIZE - 1) / 2;
@@ -150,7 +159,11 @@ const MAP_ENEMY_ALIAS = {
 function buildSpawnListForMapWave(mapWave) {
   const list = [];
   for (const group of mapWave.enemies) {
-    const type = MAP_ENEMY_ALIAS[group.type] || 'cvakac';
+    // map_02.json (level 2) authors its waves with the REAL roster keys
+    // directly (cvakac/vrtiak/kotlar/vazka/navijac/boss_kukucka_major), so
+    // only fall back to the legacy alias/placeholder-default when the type
+    // isn't already a real ENEMY_TYPES key.
+    const type = ENEMY_TYPES[group.type] ? group.type : (MAP_ENEMY_ALIAS[group.type] || 'cvakac');
     list.push(...buildUniformWave(type, group.count, group.delay));
   }
   return list;
@@ -583,7 +596,11 @@ function updateHud() {
   const goldEl = document.getElementById('goldValue');
   if (goldEl) goldEl.textContent = `${game.gold}`;
   const waveEl = document.getElementById('waveValue');
-  if (waveEl) waveEl.textContent = `${game.waveNumber}/${mapData.waves.length}`;
+  // Wave numerator/denominator are LEVEL-LOCAL (nextMapWaveIdx resets to 0
+  // each level; game.waveNumber itself keeps climbing across both levels
+  // for HP-scaling purposes, see hpForWave() in entities/Enemy.js, so it
+  // isn't what the HUD should show once there's more than one level).
+  if (waveEl) waveEl.textContent = `L${currentLevelIdx + 1} · ${nextMapWaveIdx}/${currentWaves().length}`;
 
   if (game.lives < prevLives) {
     const flash = document.getElementById('hudLivesFlash');
@@ -596,9 +613,28 @@ function updateHud() {
   prevLives = game.lives;
 
   if (game.state !== prevState) {
-    if (game.state === GAME_STATES.LOST) showHudToast('Základňa padla — hra skončila');
+    if (game.state === GAME_STATES.LOST) {
+      // index.html/preview.html listen for this to show the themed
+      // "Game Over" modal/animation (Basic vs Zombie) instead of just
+      // silently stopping (previously: no UI at all once lives hit 0).
+      window.dispatchEvent(new CustomEvent('bastiongrid:gameover', {
+        detail: { theme: themeKey, level: currentLevelIdx + 1 },
+      }));
+    }
     if (game.state === GAME_STATES.WON) {
-      showHudToast(nextMapWaveIdx >= mapData.waves.length ? 'Všetky vlny porazené!' : `Vlna ${game.waveNumber} prežitá!`);
+      const levelDone = nextMapWaveIdx >= currentWaves().length;
+      if (levelDone) {
+        // All of this level's waves are sent AND the field is clear: either
+        // there's a next level to unlock, or (last level) this is the real
+        // campaign win. index.html/preview.html listen for this event to
+        // show the "Ďalší level"/final-win modal (GDD progression, task).
+        const isFinalLevel = currentLevelIdx >= LEVELS.length - 1;
+        window.dispatchEvent(new CustomEvent('bastiongrid:levelcomplete', {
+          detail: { final: isFinalLevel, level: currentLevelIdx + 1, totalLevels: LEVELS.length },
+        }));
+      } else {
+        showHudToast(`Vlna ${nextMapWaveIdx} prežitá!`);
+      }
     }
     prevState = game.state;
   }
@@ -608,20 +644,26 @@ function updateHud() {
 const ENEMY_ICON = {
   cvakac: 'enemy-cvakac', vrtiak: 'enemy-vrtiak', kotlar: 'enemy-kotlar',
   vazka: 'enemy-mosadzna-vazka', navijac: 'enemy-navijac', boss_kukucka: 'enemy-kukuckovy-kolos',
+  // Level 2 boss reuses the base boss's icon art -- no separate asset,
+  // the model itself is what reads as the bigger/tougher variant in-scene.
+  boss_kukucka_major: 'enemy-kukuckovy-kolos',
 };
 let shownPreviewIdx = -1;
+let shownPreviewLevel = -1;
 function updateWavePreview() {
-  if (shownPreviewIdx === nextMapWaveIdx) return;
+  if (shownPreviewIdx === nextMapWaveIdx && shownPreviewLevel === currentLevelIdx) return;
   shownPreviewIdx = nextMapWaveIdx;
+  shownPreviewLevel = currentLevelIdx;
   const list = document.querySelector('#sidePanel .wave-list');
   const note = document.querySelector('#sidePanel .side-note');
   if (!list) return;
-  const mw = mapData.waves[nextMapWaveIdx];
+  const waves = currentWaves();
+  const mw = waves[nextMapWaveIdx];
   if (!mw) { list.innerHTML = ''; if (note) note.textContent = 'Žiadne ďalšie vlny.'; return; }
-  if (note) note.textContent = `Vlna ${mw.index} z ${mapData.waves.length}`;
+  if (note) note.textContent = `Level ${currentLevelIdx + 1} · Vlna ${mw.index} z ${waves.length}`;
   const counts = {};
   for (const g of mw.enemies) {
-    const ty = MAP_ENEMY_ALIAS[g.type] || 'cvakac';
+    const ty = ENEMY_TYPES[g.type] ? g.type : (MAP_ENEMY_ALIAS[g.type] || 'cvakac');
     counts[ty] = (counts[ty] || 0) + g.count;
   }
   list.innerHTML = Object.entries(counts).map(([ty, n]) =>
@@ -747,6 +789,7 @@ animate();
 // the automated screenshot harness).
 window.__bastionGrid = {
   setTheme,
+  getTheme: () => themeKey,
   rotateCamera: () => { rotateIso90(camera, CAM_DIST); inputController.applyCamera(); },
   setSpeed: (mult) => { speedMultiplier = mult; },
   togglePause: () => {
@@ -754,16 +797,35 @@ window.__bastionGrid = {
     return paused;
   },
   startNextWave: () => {
-    if (nextMapWaveIdx >= mapData.waves.length) {
+    const waves = currentWaves();
+    if (nextMapWaveIdx >= waves.length) {
       showHudToast('Všetky vlny z mapy už boli odoslané');
       return null;
     }
-    const mapWave = mapData.waves[nextMapWaveIdx];
+    const mapWave = waves[nextMapWaveIdx];
     nextMapWaveIdx += 1;
     game.queueWave(buildSpawnListForMapWave(mapWave));
     showHudToast(`Vlna ${mapWave.index} spustená`);
     return mapWave.index;
   },
+  // Level progression (task: level 2 + boss). Called by index.html/
+  // preview.html's "Ďalší level" button once bastiongrid:levelcomplete
+  // fires with final:false. Same Game instance/lives/gold/path carry over
+  // -- only the wave table (and HP-scaling continues climbing via
+  // game.waveNumber, unaffected) switches to the next, harder map.
+  nextLevel: () => {
+    if (currentLevelIdx >= LEVELS.length - 1) return false;
+    currentLevelIdx += 1;
+    nextMapWaveIdx = 0;
+    return true;
+  },
+  getLevelInfo: () => ({
+    levelIdx: currentLevelIdx,
+    levelCount: LEVELS.length,
+    waveIdx: nextMapWaveIdx,
+    waveCount: currentWaves().length,
+    isFinalLevel: currentLevelIdx >= LEVELS.length - 1,
+  }),
   game,
   debugBuild(type, gx, gz, level = 1) {
     const tile = tileGrid.children.find((c) => c.userData.gridX === gx && c.userData.gridZ === gz);
@@ -780,5 +842,16 @@ window.__bastionGrid = {
     const list = [];
     types.forEach((ty, i) => list.push({ type: ty, delay: i === 0 ? 0.3 : delay }));
     game.queueWave(list);
+  },
+  // Test/verification helper only (used by the automated screenshot
+  // harness): skips straight to "this level's waves are all sent and the
+  // field is clear" so the WON/levelcomplete flow fires on the next frame,
+  // without having to simulate every wave for real.
+  debugSkipLevel() {
+    nextMapWaveIdx = currentWaves().length;
+    game.enemies = [];
+    game.waveQueue = [];
+    game.waveRunner = null;
+    game.state = GAME_STATES.WON;
   },
 };

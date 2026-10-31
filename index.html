@@ -102,6 +102,34 @@
     background: rgba(255, 255, 255, 0.12); color: #f4f4f4;
   }
   .game-confirm-actions button.is-primary { background: #ffb627; color: #2b2d42; }
+
+  /* ---- Game over (lives hit 0) ---------------------------------------
+     Same .game-confirm shell as the other modals, but the card itself
+     gets a themed, animated treatment: Basic = mechanical "springs
+     snapped" (warm red glow pulse, cracked-gear icon); Zombie = toxic
+     "rot overran it" (cold green ooze pulse, spore icon). main.js
+     dispatches bastiongrid:gameover with the active theme once, when
+     state flips to LOST (see updateHud() in main.js). */
+  .game-over-card { position: relative; overflow: hidden; text-align: center; }
+  .game-over-card > * { position: relative; z-index: 1; }
+  .game-over-icon { display: block; margin: 0 auto 10px; }
+  .game-over-card .icon-zombie { display: none; }
+  .game-over-card.theme-zombie .icon-basic { display: none; }
+  .game-over-card.theme-zombie .icon-zombie { display: block; }
+  .game-over-card::before {
+    content: ''; position: absolute; inset: -45%; pointer-events: none;
+    background: radial-gradient(circle, rgba(228, 87, 46, 0.4), transparent 62%);
+    animation: goPulseBasic 2.1s ease-in-out infinite;
+  }
+  @keyframes goPulseBasic { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 0.8; transform: scale(1.08); } }
+  .game-over-card.theme-zombie { background: rgba(14, 24, 17, 0.97); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(158, 240, 26, 0.35); }
+  .game-over-card.theme-zombie::before {
+    background: radial-gradient(circle, rgba(158, 240, 26, 0.38), transparent 62%);
+    animation-name: goPulseZombie; filter: blur(1px);
+  }
+  @keyframes goPulseZombie { 0%, 100% { opacity: 0.3; transform: scale(0.88) translateY(0); } 50% { opacity: 0.75; transform: scale(1.12) translateY(-5px); } }
+  .game-over-card.theme-zombie h3 { color: #c8ff7a; }
+  .game-over-card.theme-zombie .game-confirm-actions button.is-primary { background: #9ef01a; color: #15230f; }
   .hud-dev {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
     width: 100%; opacity: 0.7;
@@ -130,11 +158,29 @@
      canvas is already wide, it just needs a slim strip, not a tall one.
      Vertical room is scarce here, so the dev row (not needed to play)
      is dropped and only the real action row stays. */
+  /* Mobile/tablet landscape (task S): the bottom-bar approach wasted
+     most of an already-short landscape viewport height on a HUD strip,
+     leaving the grid looking tiny and squeezed into a letterboxed middle
+     band. Moving the HUD to a narrow RIGHT-SIDE column instead gives the
+     canvas the full viewport height and all-but-~100px of the width, so
+     computeFitViewSize() (IsoCamera.js) frames a visibly bigger grid.
+     Not the same as the >=1024px desktop #sidePanel treatment below --
+     this is a slim action rail, not a 280px info panel, and still only
+     holds the core play actions (dev row stays dropped as before). */
   @media (orientation: landscape) and (max-width: 1023px) {
-    #ui { padding-top: 6px; padding-bottom: calc(6px + var(--safe-bottom)); font-size: 12px; gap: 4px; }
+    #layout { flex-direction: row; }
+    #sceneArea { order: 1; }
+    #ui {
+      order: 2; flex: 0 0 108px; width: 108px; box-sizing: border-box;
+      flex-direction: column; justify-content: flex-start;
+      height: 100%; max-height: 100%; overflow-y: auto;
+      gap: 8px; font-size: 12px;
+      padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) calc(8px + var(--safe-bottom)) 8px;
+    }
+    .hud-actions { flex-direction: column; flex-wrap: nowrap; gap: 8px; width: 100%; }
     .hud-dev { display: none; }
-    .hud-btn { min-height: 40px; padding: 4px 12px; }
-    .hud-stat { min-height: 40px; }
+    .hud-stat { width: 100%; justify-content: center; min-height: 44px; }
+    .hud-btn { width: 100%; min-height: 48px; }
   }
 
   /* Desktop/NTB: #ui goes back to a floating top overlay (it no longer
@@ -460,6 +506,36 @@
       </div>
     </div>
   </div>
+  <div id="levelComplete" class="game-confirm" role="dialog" aria-modal="true" aria-labelledby="levelCompleteTitle" hidden>
+    <div class="game-confirm-card">
+      <h3 id="levelCompleteTitle">Level dokončený!</h3>
+      <p id="levelCompleteText">Hodinár naťahuje ťažšie súkolie...</p>
+      <div class="game-confirm-actions">
+        <button type="button" class="is-primary" id="levelCompleteBtn" data-act="next">Ďalší level</button>
+      </div>
+    </div>
+  </div>
+  <div id="gameOver" class="game-confirm" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
+    <div class="game-confirm-card game-over-card" id="gameOverCard">
+      <svg class="game-over-icon icon-basic" viewBox="0 0 100 100" width="72" height="72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="50" cy="50" r="36" stroke="#ffb627" stroke-width="5" stroke-dasharray="7 6" />
+        <path d="M30 30 L70 70 M70 30 L30 70" stroke="#e4572e" stroke-width="6" stroke-linecap="round" />
+        <path d="M50 12 L55 38 L45 38 Z" fill="#c9a227" />
+      </svg>
+      <svg class="game-over-icon icon-zombie" viewBox="0 0 100 100" width="72" height="72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="50" cy="50" r="36" stroke="#9ef01a" stroke-width="5" stroke-dasharray="3 7" />
+        <path d="M34 62 Q50 28 66 62 Q50 50 34 62 Z" fill="#6b8f71" />
+        <circle cx="41" cy="46" r="4.5" fill="#9ef01a" />
+        <circle cx="59" cy="51" r="3.5" fill="#9ef01a" />
+        <circle cx="50" cy="38" r="2.5" fill="#9ef01a" />
+      </svg>
+      <h3 id="gameOverTitle">Základňa padla!</h3>
+      <p id="gameOverText">Hodinárova légia prešla bránou. Skús to znova s inou obranou.</p>
+      <div class="game-confirm-actions">
+        <button type="button" class="is-primary" id="gameOverBtn" data-act="menu">Do menu</button>
+      </div>
+    </div>
+  </div>
   <div id="errbox"></div>
   <div id="rotateOverlay" class="rotate-overlay">
     <svg class="rotate-overlay-icon" viewBox="0 0 100 100" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -571,6 +647,62 @@
         e.currentTarget.classList.toggle('is-paused', isPaused);
         showHudToast(isPaused ? 'Pauza' : 'Pokracujeme');
       });
+
+      // ---- Level progression (GDD 5.4/campaign task): main.js dispatches
+      // this once a level's waves are all sent AND the field is clear --
+      // either "next level unlocked" (final:false) or the real campaign
+      // win (final:true, last level's boss down). Same modal, two texts.
+      const levelCompleteEl = document.getElementById('levelComplete');
+      const lcTitle = document.getElementById('levelCompleteTitle');
+      const lcText = document.getElementById('levelCompleteText');
+      const lcBtn = document.getElementById('levelCompleteBtn');
+      window.addEventListener('bastiongrid:levelcomplete', (e) => {
+        const { final, level, totalLevels } = e.detail || {};
+        if (final) {
+          lcTitle.textContent = `Level ${level} dokončený — Bašta ubránená!`;
+          lcText.textContent = 'Kukučkový kolos Major padol. Hodinárova légia je zastavená. Ďakujeme za hru!';
+          lcBtn.textContent = 'Späť do menu';
+          lcBtn.dataset.act = 'menu';
+        } else {
+          lcTitle.textContent = `Level ${level} dokončený!`;
+          lcText.textContent = `Hodinár naťahuje ťažšie súkolie. Level ${level + 1} z ${totalLevels} je odomknutý.`;
+          lcBtn.textContent = 'Ďalší level';
+          lcBtn.dataset.act = 'next';
+        }
+        levelCompleteEl.hidden = false;
+      });
+      lcBtn.addEventListener('click', () => {
+        const act = lcBtn.dataset.act;
+        levelCompleteEl.hidden = true;
+        if (act === 'next') window.__bastionGrid.nextLevel();
+        else location.reload();
+      });
+
+      // ---- Game over (lives hit 0): main.js dispatches this once the
+      // moment state flips to LOST, with the active theme, so the modal
+      // matches Basic ("springs snapped") vs Zombie ("rot overran it").
+      // There's no mid-run retry state (lives/gold/towers aren't reset
+      // independently), so the only action is back to the menu -- same
+      // pattern as gameConfirm's "leave" and levelComplete's final win.
+      const gameOverEl = document.getElementById('gameOver');
+      const goCard = document.getElementById('gameOverCard');
+      const goTitle = document.getElementById('gameOverTitle');
+      const goText = document.getElementById('gameOverText');
+      const goBtn = document.getElementById('gameOverBtn');
+      window.addEventListener('bastiongrid:gameover', (e) => {
+        const { theme, level } = e.detail || {};
+        const isZombie = theme === 'zombie';
+        goCard.classList.toggle('theme-zombie', isZombie);
+        if (isZombie) {
+          goTitle.textContent = 'Nákaza pohltila baštu';
+          goText.textContent = `Prerastení prerazili bránu na leveli ${level || 1}. Huba sa už šíri ďalej po bojisku.`;
+        } else {
+          goTitle.textContent = 'Základňa padla!';
+          goText.textContent = `Hodinárova légia prešla bránou na leveli ${level || 1}. Skús to znova s inou obranou.`;
+        }
+        gameOverEl.hidden = false;
+      });
+      goBtn.addEventListener('click', () => location.reload());
     }
     wire();
   </script>

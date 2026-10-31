@@ -32,7 +32,7 @@ const DIAGONAL_FACTOR = Math.SQRT2;
 // their real size via setFitExtent(); these are just safe fallbacks.
 let gridHalfExtent = 9;
 let heightMargin = 2;
-const FIT_PADDING = 1.08; // small breathing room so edges aren't razor-tight
+const FIT_PADDING = 1.04; // small breathing room so edges aren't razor-tight (task S: tightened from 1.08 -- the grid was reading small/distant even on a big canvas)
 
 /**
  * Tell the fit-to-grid math the actual size of the scene it needs to keep

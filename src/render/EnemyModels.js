@@ -1346,25 +1346,32 @@ function createNavijac() {
 // BOSS: KUKUCKOVY KOLOS -- walking cuckoo-clock cabinet (~2x size)
 // ---------------------------------------------------------------------------
 
-function createKukucka() {
-  const E = scaffold('boss_kukucka');
+// major=true builds the level-2 boss (Kukučkový kolos Major, GDD 5.4 rozsirena
+// mechanika): same cabinet-boss silhouette/rig/animation, but noticeably
+// bigger, with hotter brass-gone-red trim (steampunk "overheated" look) and
+// a extra warning ring around the clock face so it reads as a tougher,
+// later-game threat at a glance -- not just a bigger number on the HP bar.
+function createKukucka(major = false) {
+  const E = scaffold(major ? 'boss_kukucka_major' : 'boss_kukucka');
   const { rig, kit, st } = E;
   st.walkRate = 3.6;
   st.keyRate = 1.8;
 
-  const walnut = kit.mat(0x6e4226, { r: 0.55, m: 0.05, zk: 0.45 });
+  const walnut = kit.mat(major ? 0x5a2a1c : 0x6e4226, { r: 0.55, m: 0.05, zk: 0.45 });
   const darkWood = kit.mat(0x9a5f36, { r: 0.6, m: 0.05, zk: 0.35, flat: true });
   const lightWood = kit.mat(0xb07a45, { r: 0.5, m: 0.05, zk: 0.45 });
   const cream = kit.mat(0xf1e4c8, { r: 0.45, m: 0, zk: 0.4 });
-  const brass = kit.mat(0xe0b43a, { r: 0.28, m: 0.6, zc: 0x7f8f5a });
+  const brass = kit.mat(major ? 0xc9a227 : 0xe0b43a, { r: 0.28, m: 0.6, zc: major ? 0xe4572e : 0x7f8f5a });
   const dial = kit.mat(0xffffff, { vc: true, r: 0.4, m: 0, zc: 0xb9c9a6 });
   const black = kit.mat(0x18161a, { r: 0.35, m: 0.2, zk: 0.15 });
-  const red = kit.mat(0xd7262e, { r: 0.3, m: 0.05, zk: 0.55 });
+  const red = kit.mat(major ? 0xe4572e : 0xd7262e, { r: 0.3, m: 0.05, zk: 0.55 });
   const bird = kit.mat(0xffffff, { vc: true, r: 0.4, m: 0, zc: 0xb9d9a0 });
-  const eyes = kit.mat(0xffe9a0, { e: 0xffb000, ei: 1.4, r: 0.2, m: 0, zc: 0xcfff80, ze: 0x9ef01a });
+  const eyes = kit.mat(0xffe9a0, major
+    ? { e: 0xff3a1a, ei: 2.4, r: 0.2, m: 0, zc: 0xcfff80, ze: 0xff3a1a }
+    : { e: 0xffb000, ei: 1.4, r: 0.2, m: 0, zc: 0xcfff80, ze: 0x9ef01a });
   E.pulsing = true;
 
-  rig.scale.setScalar(0.86);
+  rig.scale.setScalar(major ? 1.18 : 0.86);
   const body = new THREE.Group();
   body.position.y = 0.62;
   rig.add(body);
@@ -1462,6 +1469,24 @@ function createKukucka() {
     ),
     brass
   );
+  let warnRing = null;
+  if (major) {
+    // Extra "overheated" warning ring: a visual tell unique to the Major
+    // boss so players recognise the harder level-2 encounter on sight,
+    // independent of the HP bar/scale difference.
+    warnRing = add(
+      face,
+      G('ku_warnring', () => new THREE.TorusGeometry(0.4, 0.015, 8, 32)),
+      red,
+      0,
+      0,
+      0.09,
+      0,
+      0,
+      0,
+      false
+    );
+  }
   add(
     face,
     G('ku_dial', () => {
@@ -1726,6 +1751,7 @@ function createKukucka() {
     birdG.rotation.x = open > 0.9 ? Math.sin(t * 22) * 0.25 - 0.1 : 0;
     eyes.userData.pulse = 0.8 + 0.3 * Math.sin(t * 2.5 + st.seed) + (open > 0.5 ? 0.6 : 0);
     key.spin.rotation.y = st.keyAngle;
+    if (warnRing) warnRing.scale.setScalar(1 + 0.08 * Math.sin(t * 5 + st.seed));
   });
   return E.group;
 }
@@ -1739,6 +1765,7 @@ const FACTORIES = {
   vazka: createVazka,
   navijac: createNavijac,
   boss_kukucka: createKukucka,
+  boss_kukucka_major: () => createKukucka(true),
 };
 
 export const ENEMY_MODEL_TYPES = Object.keys(FACTORIES);

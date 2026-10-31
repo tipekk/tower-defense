@@ -57,6 +57,24 @@ export const ENEMY_TYPES = {
     stunRadius: 3,
     stunDuration: 1.5,
   },
+  // Level 2 boss: velka/tazsia verzia Kukuckoveho kolosu (GDD 5.4, rozsirena
+  // mechanika). Viac fazi "odbitia hodin" (3 miesto 2), vacsi a castejsi
+  // vypust posilnenych jednotiek (kotlar namiesto cvakaca), vyssi odmena
+  // a vyssia strata zivotov pri prechode branou.
+  boss_kukucka_major: {
+    name: 'Kukučkový kolos Major',
+    hp: 4200,
+    speed: 0.55,
+    bounty: 260,
+    isBoss: true,
+    livesCost: 8,
+    spawnInterval: 9,
+    spawnCount: 4,
+    spawnType: 'kotlar',
+    stunThresholds: [0.75, 0.5, 0.25],
+    stunRadius: 4,
+    stunDuration: 2.0,
+  },
 };
 
 /** HP scaling by wave number (wave 1 = base). */
