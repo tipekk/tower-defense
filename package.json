@@ -1,0 +1,10 @@
+{
+  "name": "bastion-grid",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build-preview.mjs",
+    "dev": "npx wrangler dev",
+    "deploy": "node tools/build-preview.mjs && npx wrangler deploy"
+  }
+}

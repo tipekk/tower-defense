@@ -1,0 +1,438 @@
+/* =====================================================================
+   Bastion Grid – menu layout „hero" (ultra-minimal, filmový)
+   LEN layout (pozície, rozmery, poradie). Farby výhradne z --m-* tokenov.
+
+   Koncept: 3D scéna cez celú obrazovku, podstavec v strede. Nad ňou
+   tri veci v jednej osi: veľký prepínač módu hore v strede, obrovský
+   titul cez spodnú tretinu, pod ním jedno veľké „Hrať". Všetko ostatné
+   je tichý riadok textových odkazov úplne dole. Logo vľavo hore,
+   účet + meny vpravo hore. Panely = karta v strede nad rozmazanou
+   scénou (landscape/desktop), bottom sheet v portrait.
+
+     ┌──────────────────────────────────────────────────────────┐
+     │ Bastion Grid        [  BASIC  |  ZOMBIE  ]     (◎ Meno)  │
+     │                                                  0★ 0⚙   │
+     │                    ╱‾‾‾‾ podstavec ‾‾‾╲                  │
+     │                       Denná dielňa                       │
+     │                NATIAHNUTÁ LÉGIA                          │
+     │                      [   Hrať   ]                        │
+     │  Obtiažnosť  Rebríček  Nastavenia  Denná výzva  Vylepš.  │
+     └──────────────────────────────────────────────────────────┘
+   ===================================================================== */
+
+#menu[data-layout="hero"] {
+  --hero-pad-t: calc(var(--g) * 0.6 + var(--safe-t));
+  --hero-pad-r: calc(var(--g) + var(--safe-r));
+  --hero-pad-b: calc(var(--g) * 0.5 + var(--safe-b));
+  --hero-pad-l: calc(var(--g) + var(--safe-l));
+  --hero-bar: 52px;                         /* výška horného pruhu (prepínač) */
+  --hero-switch-w: 132px;                   /* šírka jednej polovice prepínača */
+  --hero-switch-fs: 17px;
+  --hero-title: clamp(40px, min(13.5vh, 8.4vw), 150px);
+  --hero-play-h: 58px;
+  --hero-play-w: 240px;
+  --hero-link-h: 44px;
+  --hero-gap-play: 18px;
+  --hero-stage-t: calc(var(--safe-t) + 40px);
+  --hero-stage-b: 22%;
+}
+
+/* ---- scéna cez celý viewport ----------------------------------------- */
+/* plátno je cez celú plochu, podstavec sa však centruje v hornej časti,
+   aby titul ležal na jeho úpätí (spodná tretina), nie v strede scény */
+#menu[data-layout="hero"] .menu-stage {
+  left: 0; right: 0;
+  top: var(--hero-stage-t); bottom: var(--hero-stage-b);
+  width: auto; height: auto;
+}
+
+/* ---- horný pruh: logo | PREPÍNAČ | účet ------------------------------- */
+#menu[data-layout="hero"] .menu-top {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "brand switch account";
+  min-height: var(--hero-bar);
+}
+#menu[data-layout="hero"] .menu-brand { grid-area: brand; align-self: center; }
+#menu[data-layout="hero"] .menu-tagline { display: none; }
+#menu[data-layout="hero"] .mode-switch { grid-area: switch; justify-self: center; padding: 5px; }
+#menu[data-layout="hero"] .mode-thumb { top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); }
+#menu[data-layout="hero"] .mode-switch .mode-opt {
+  min-width: var(--hero-switch-w);
+  min-height: calc(var(--hero-bar) - 10px);
+  padding: 0 22px;
+  font-size: var(--hero-switch-fs);
+}
+#menu[data-layout="hero"] .menu-account { grid-area: account; justify-self: end; }
+
+/* ---- hlavná vrstva: celoplošný overlay, klikateľné len deti ----------- */
+#menu[data-layout="hero"] > .menu-main {
+  position: absolute; inset: 0;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: var(--hero-pad-t) var(--hero-pad-r) var(--hero-pad-b) var(--hero-pad-l);
+  pointer-events: none;
+}
+#menu[data-layout="hero"] .menu-main::before {
+  /* scrim + rozmazaná scéna za otvoreným panelom (vo všetkých orientáciách) */
+  -webkit-backdrop-filter: blur(10px) saturate(0.9);
+          backdrop-filter: blur(10px) saturate(0.9);
+}
+#menu[data-layout="hero"]:not([data-screen="home"]) .menu-main::before {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transition: opacity var(--m-dur) ease, visibility 0s;
+}
+
+/* ---- home: jedna centrálna os ---------------------------------------- */
+#menu[data-layout="hero"] .menu-home {
+  position: static;                       /* stats + scrim sa viažu na .menu-main */
+  grid-area: 1 / 1;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(5, auto) minmax(0, 1fr);
+  grid-template-rows:
+    var(--hero-bar)          /* 1  miesto pre horný pruh */
+    minmax(0, 1fr)           /* 2  scéna dýcha */
+    auto                     /* 3  kicker */
+    auto                     /* 4  titul */
+    auto                     /* 5  lead */
+    auto                     /* 6  Hrať */
+    minmax(10px, 0.32fr)     /* 7  pauza */
+    auto;                    /* 8  odkazy */
+  grid-template-areas: none;
+  column-gap: clamp(14px, 2.6vw, 34px);
+  row-gap: 0;
+  align-items: center;
+  justify-items: center;
+  min-height: 0;
+  text-align: center;
+}
+#menu[data-layout="hero"] .menu-home > *,
+#menu[data-layout="hero"] .menu-home :is(.menu-cta, .menu-nav) > * { position: relative; z-index: 1; }
+#menu[data-layout="hero"] .menu-home button { pointer-events: auto; }
+
+/* jemný scrim pod textom – čisto layoutovo, farba z --m-bg */
+#menu[data-layout="hero"] .menu-home::before {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+  z-index: 0; pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--m-bg) 92%, transparent) 0%,
+    color-mix(in srgb, var(--m-bg) 72%, transparent) 34%,
+    color-mix(in srgb, var(--m-bg) 30%, transparent) 64%,
+    transparent 100%);
+}
+
+#menu[data-layout="hero"] .menu-kicker {
+  display: none;                          /* ultra-minimal: titul stojí sám */
+  grid-column: 1 / -1; grid-row: 3;
+  align-self: end;
+  max-width: 100%;
+  margin: 0 0 clamp(4px, 1.2vh, 12px);
+  font-size: 14px;
+}
+#menu[data-layout="hero"] .menu-title {
+  grid-column: 1 / -1; grid-row: 4;
+  max-width: 100%;
+  margin: 0;
+  font-size: var(--hero-title);
+  line-height: 0.92;
+  white-space: nowrap;
+  text-wrap: balance;
+}
+#menu[data-layout="hero"] .menu-lead {
+  grid-column: 1 / -1; grid-row: 5;
+  max-width: 42ch;
+  margin: clamp(10px, 1.8vh, 18px) auto 0;
+  font-size: 16px;
+}
+
+/* CTA: kontajner sa rozpustí, Hrať ide do osi, Denná výzva medzi odkazy */
+#menu[data-layout="hero"] .menu-cta,
+#menu[data-layout="hero"] .menu-nav { display: contents; }
+
+#menu[data-layout="hero"] .menu-cta .btn-primary {
+  grid-column: 1 / -1; grid-row: 6;
+  flex: none;
+  width: var(--hero-play-w); min-width: 0; max-width: 100%;
+  min-height: var(--hero-play-h);
+  margin-top: var(--hero-gap-play);
+  padding: 0 32px;
+  font-size: 20px;
+}
+
+/* ---- spodný riadok tichých odkazov ----------------------------------- */
+#menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost) {
+  grid-row: 8;
+  display: inline-flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 0.45em;
+  width: auto; min-width: 44px; min-height: var(--hero-link-h);
+  margin: 0; padding: 12px 2px;
+  flex: none;
+  line-height: 20px;
+  white-space: nowrap;
+  text-align: center;
+}
+#menu[data-layout="hero"] .menu-item[data-open="difficulty"]  { grid-column: 2; }
+#menu[data-layout="hero"] .menu-item[data-open="leaderboard"] { grid-column: 3; }
+#menu[data-layout="hero"] .menu-item[data-open="settings"]    { grid-column: 4; }
+#menu[data-layout="hero"] .menu-cta .btn-ghost                { grid-column: 5; }
+#menu[data-layout="hero"] .menu-item.is-locked                { grid-column: 6; }
+
+/* skiny kreslia odkazy ako dlaždice – tu z nich spravíme čistý text.
+   (vyššia špecificita než skin; farby len z tokenov) */
+#menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost),
+#menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):is(:hover, :active, [aria-expanded="true"], .is-locked, :disabled) {
+  background: none;
+  box-shadow: none;
+  outline: 0;
+  border-radius: 6px;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  color: var(--m-text);
+  font-family: var(--m-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.005em;
+  text-shadow: none;
+  animation: none;
+  transform: none;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 6px;
+  transition: text-decoration-color var(--m-dur) ease, color var(--m-dur) ease, opacity var(--m-dur) ease;
+}
+#menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost) :is(.menu-item-label) {
+  font-family: inherit; font-weight: inherit; letter-spacing: inherit; font-size: 1em; max-width: none;
+}
+#menu[data-layout="hero"][data-mode] .menu-home .menu-item .menu-item-value {
+  display: none;
+  font-size: 0.86em; font-weight: 500; font-style: normal;
+  color: var(--m-muted);
+  max-width: none;
+}
+@media (hover: hover) {
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):not(:disabled):hover {
+    text-decoration-color: var(--m-accent);
+  }
+}
+#menu[data-layout="hero"][data-mode] .menu-home .menu-item[aria-expanded="true"] { text-decoration-color: var(--m-accent); }
+#menu[data-layout="hero"][data-mode] .menu-home .menu-item:is(.is-locked, :disabled) { opacity: 0.5; cursor: not-allowed; }
+#menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):focus-visible {
+  outline: 2px solid var(--m-accent); outline-offset: 2px;
+}
+
+/* ---- meny pod účtom vpravo hore -------------------------------------- */
+#menu[data-layout="hero"] .menu-stats {
+  position: absolute;
+  top: calc(var(--hero-pad-t) + var(--hero-bar) / 2 + 26px);
+  right: calc(var(--hero-pad-r) + 6px);
+  display: flex; gap: 12px;
+  margin: 0;
+  pointer-events: auto;
+}
+
+/* ---- footer (verzia, klávesová nápoveda) – v tomto rozložení skrytý */
+#menu[data-layout="hero"] .menu-foot { display: none; }
+
+/* ---- panely: karta v strede nad rozmazanou scénou -------------------- */
+#menu[data-layout="hero"] .menu-panel {
+  position: absolute; z-index: 5;
+  top: calc(12px + var(--safe-t)); bottom: calc(12px + var(--safe-b));
+  left: calc(16px + var(--safe-l)); right: calc(16px + var(--safe-r));
+  width: min(460px, calc(100% - 32px - var(--safe-l) - var(--safe-r)));
+  height: fit-content; max-height: calc(100% - 24px - var(--safe-t) - var(--safe-b));
+  margin: auto;
+  transform: translateY(14px) scale(0.98);
+  transform-origin: 50% 60%;
+}
+#menu[data-layout="hero"][data-screen="leaderboard"] .menu-panel[data-screen="leaderboard"],
+#menu[data-layout="hero"][data-screen="difficulty"]  .menu-panel[data-screen="difficulty"],
+#menu[data-layout="hero"][data-screen="login"]       .menu-panel[data-screen="login"],
+#menu[data-layout="hero"][data-screen="settings"]    .menu-panel[data-screen="settings"] {
+  transform: none;
+}
+
+/* =====================================================================
+   Krátky landscape (telefóny 844×390, 667×375) – hlavný cieľ.
+   ===================================================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+  #menu[data-layout="hero"] {
+    --hero-bar: 54px;
+    --hero-switch-w: 118px;
+    --hero-stage-t: calc(var(--safe-t) + 30px);
+    --hero-stage-b: 24%;
+    --hero-switch-fs: 15px;
+    --hero-title: clamp(36px, min(15vh, 8.6vw), 70px);
+    --hero-play-h: 50px;
+    --hero-play-w: 220px;
+    --hero-gap-play: 12px;
+  }
+  #menu[data-layout="hero"] .menu-lead { display: none; }
+  #menu[data-layout="hero"] .menu-cta .btn-primary { font-size: 18px; }
+  #menu[data-layout="hero"] .menu-home { grid-template-rows: var(--hero-bar) minmax(0, 1fr) auto auto auto auto minmax(4px, 0.18fr) auto; }
+  #menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost) { padding-top: 12px; padding-bottom: 8px; }
+  #menu[data-layout="hero"] .menu-stats { top: calc(var(--hero-pad-t) + var(--hero-bar) / 2 + 24px); }
+  #menu[data-layout="hero"] .menu-panel { width: min(440px, calc(100% - 32px - var(--safe-l) - var(--safe-r))); }
+}
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 700px) {
+  #menu[data-layout="hero"] { --hero-switch-w: 104px; --hero-switch-fs: 14px; }
+  #menu[data-layout="hero"] .menu-home { column-gap: 14px; }
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost) { font-size: 13px; }
+  #menu[data-layout="hero"] .menu-account-name { max-width: 8ch; }
+}
+
+/* =====================================================================
+   Portrait: prepínač cez šírku pod logom, titul na 2 riadky,
+   odkazy ako tichý panel ikon s popisom, panely = bottom sheet.
+   ===================================================================== */
+@media (orientation: portrait) {
+  #menu[data-layout="hero"] {
+    --hero-bar: 56px;
+    --hero-title: clamp(46px, 15.5vw, 120px);
+    --hero-stage-t: calc(var(--safe-t) + 96px);
+    --hero-stage-b: 30%;
+    --hero-play-h: 58px;
+    --hero-play-w: min(100%, 320px);
+    --hero-gap-play: 20px;
+    --hero-head-h: calc(44px + 12px + var(--hero-bar));   /* brand riadok + medzera + prepínač */
+  }
+  #menu[data-layout="hero"] .menu-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand account" "switch switch";
+    row-gap: 12px;
+  }
+  #menu[data-layout="hero"] .mode-switch { justify-self: stretch; width: min(100%, 360px); margin: 0 auto; }
+  #menu[data-layout="hero"] .mode-switch .mode-opt { min-width: 0; }
+  /* účet = iba avatar (známa šírka), meny hneď vedľa neho */
+  #menu[data-layout="hero"] .menu-account { padding: 4px; min-width: 44px; }
+  #menu[data-layout="hero"] .menu-account-name { display: none; }
+  #menu[data-layout="hero"] .menu-stats {
+    top: var(--hero-pad-t); right: calc(var(--hero-pad-r) + 44px + 14px);
+    height: 44px; align-items: center;
+  }
+  #menu[data-layout="hero"] .menu-home {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows:
+      var(--hero-head-h) minmax(0, 1fr) auto auto auto auto minmax(14px, 0.3fr) auto;
+    column-gap: 4px;
+  }
+  #menu[data-layout="hero"] .menu-item[data-open="difficulty"]  { grid-column: 1; }
+  #menu[data-layout="hero"] .menu-item[data-open="leaderboard"] { grid-column: 2; }
+  #menu[data-layout="hero"] .menu-item[data-open="settings"]    { grid-column: 3; }
+  #menu[data-layout="hero"] .menu-cta .btn-ghost                { grid-column: 4; }
+  #menu[data-layout="hero"] .menu-item.is-locked                { grid-column: 5; }
+  #menu[data-layout="hero"] .menu-home::before { height: 58%; }
+  #menu[data-layout="hero"] .menu-title { white-space: normal; max-width: 9ch; }
+  #menu[data-layout="hero"] .menu-lead { max-width: 30ch; font-size: 15px; }
+
+  #menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost) {
+    flex-direction: column; align-items: center; gap: 6px;
+    width: 100%; min-height: 58px; padding: 6px 0 4px;
+    line-height: 13px;
+    white-space: normal;
+    align-self: start;
+  }
+  #menu[data-layout="hero"] .menu-home .menu-item .menu-item-label { white-space: normal; }
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost),
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):is(:hover, :active, [aria-expanded="true"], .is-locked, :disabled) {
+    font-size: 11px; font-weight: 600; text-underline-offset: 4px;
+  }
+  #menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost)::before {
+    content: ""; display: block; flex: none;
+    width: 22px; height: 22px;
+    background: currentColor;
+    -webkit-mask: var(--hero-ico) center / contain no-repeat;
+            mask: var(--hero-ico) center / contain no-repeat;
+  }
+  #menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost) .menu-item-label {
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* bottom sheet: menu.css ho už robí; tu len zrušíme kartové centrovanie */
+  #menu[data-layout="hero"] .menu-panel {
+    position: fixed;
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: min(100%, 620px); height: auto;
+    max-height: min(84dvh, 720px);
+    margin: 0 auto;
+    transform: translateY(100%);
+  }
+}
+@media (orientation: portrait) and (max-width: 360px) {
+  #menu[data-layout="hero"] { --hero-title: clamp(40px, 14.5vw, 120px); }
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost) { font-size: 10.5px; }
+}
+@media (orientation: portrait) and (max-height: 700px) {
+  #menu[data-layout="hero"] .menu-lead { display: none; }
+}
+@media (orientation: portrait) and (min-width: 600px) {
+  #menu[data-layout="hero"] {
+    --hero-bar: 60px;
+    --hero-title: clamp(60px, 13vw, 132px);
+    --hero-stage-t: calc(var(--safe-t) + 130px);
+    --hero-stage-b: 38%;
+    --hero-play-w: 320px; --hero-play-h: 62px;
+  }
+  #menu[data-layout="hero"] .mode-switch { width: min(100%, 420px); }
+  #menu[data-layout="hero"] .mode-switch .mode-opt { font-size: 18px; }
+  #menu[data-layout="hero"] .menu-home { grid-template-columns: minmax(0, 1fr) repeat(5, auto) minmax(0, 1fr); column-gap: 28px; }
+  #menu[data-layout="hero"] .menu-item[data-open="difficulty"]  { grid-column: 2; }
+  #menu[data-layout="hero"] .menu-item[data-open="leaderboard"] { grid-column: 3; }
+  #menu[data-layout="hero"] .menu-item[data-open="settings"]    { grid-column: 4; }
+  #menu[data-layout="hero"] .menu-cta .btn-ghost                { grid-column: 5; }
+  #menu[data-layout="hero"] .menu-item.is-locked                { grid-column: 6; }
+  #menu[data-layout="hero"] .menu-home :is(.menu-item, .menu-cta .btn-ghost) { width: auto; min-width: 72px; }
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost),
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):is(:hover, :active, [aria-expanded="true"], .is-locked, :disabled) { font-size: 14px; }
+  #menu[data-layout="hero"] .menu-lead { font-size: 18px; }
+}
+
+/* =====================================================================
+   Veľké obrazovky (desktop / tablet landscape)
+   ===================================================================== */
+@media (orientation: landscape) and (min-height: 501px) {
+  #menu[data-layout="hero"] {
+    --hero-bar: 62px;
+    --hero-switch-w: 168px;
+    --hero-stage-t: calc(var(--safe-t) + 70px);
+    --hero-stage-b: 26%;
+    --hero-switch-fs: 19px;
+    --hero-play-h: 64px;
+    --hero-play-w: 280px;
+    --hero-gap-play: 26px;
+    --hero-link-h: 48px;
+  }
+  #menu[data-layout="hero"] .menu-tagline { display: block; }
+  #menu[data-layout="hero"] .menu-cta .btn-primary { font-size: 22px; }
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost),
+  #menu[data-layout="hero"][data-mode] .menu-home :is(.menu-item, .menu-cta .btn-ghost):is(:hover, :active, [aria-expanded="true"], .is-locked, :disabled) { font-size: 15px; }
+  #menu[data-layout="hero"][data-mode] .menu-home .menu-item .menu-item-value { display: inline; }
+  #menu[data-layout="hero"][data-mode] .menu-home .menu-item[data-open="settings"] .menu-item-value { display: none; }
+  #menu[data-layout="hero"] .menu-stats { top: calc(var(--hero-pad-t) + var(--hero-bar) / 2 + 28px); }
+  #menu[data-layout="hero"] .menu-panel {
+    width: min(500px, calc(100% - 64px));
+    max-height: min(760px, calc(100% - 96px));
+  }
+}
+
+/* ---- ikony pre portrait (CSS maska, inline SVG) ----------------------- */
+#menu[data-layout="hero"] .menu-item[data-open="difficulty"] {
+  --hero-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 17a8 8 0 0 1 16 0'/%3E%3Cpath d='M12 17l4.5-5'/%3E%3Ccircle cx='12' cy='17' r='1.3' fill='%23000'/%3E%3C/svg%3E");
+}
+#menu[data-layout="hero"] .menu-item[data-open="leaderboard"] {
+  --hero-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M9 20V8h6v12M3 20v-7h6M15 20v-9h6v9M2 20h20'/%3E%3C/svg%3E");
+}
+#menu[data-layout="hero"] .menu-item[data-open="settings"] {
+  --hero-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 7h10M18 7h2M4 17h2M10 17h10'/%3E%3Ccircle cx='16' cy='7' r='2'/%3E%3Ccircle cx='8' cy='17' r='2'/%3E%3C/svg%3E");
+}
+#menu[data-layout="hero"] .menu-cta .btn-ghost {
+  --hero-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M4 10h16M9 3v4M15 3v4'/%3E%3Ccircle cx='12' cy='15' r='1.6' fill='%23000'/%3E%3C/svg%3E");
+}
+#menu[data-layout="hero"] .menu-item.is-locked {
+  --hero-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #menu[data-layout="hero"] .menu-panel { transform: none; }
+}

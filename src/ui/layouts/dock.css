@@ -1,0 +1,335 @@
+/* src/ui/layouts/dock.css -- Bastion Grid menu, alternative layout "dock".
+   Concept: a game console. The 3D plinth with the figures is the hero,
+   big and centred. Header: brand | mode switch | account (+ ★/⚙ readout).
+   Title + lead are small, anchored left (vertically centred in landscape,
+   just above the dock in portrait). At the bottom a floating dock:
+   icon buttons left and right, the big Hrať + Denná výzva in the middle.
+   Panels: card sliding in from the right (landscape/desktop), bottom
+   sheet (portrait) -- both over the stage.
+   LAYOUT ONLY: positions, sizes, order. Colours come from the --m-* tokens
+   of the active skin. All rules scoped #menu[data-layout="dock"]; rules
+   that must beat skin state styles (hover/locked/desktop list) use
+   #menu#menu[...] for specificity. Activation: ?layout=dock. */
+
+#menu[data-layout="dock"] {
+  --d-tile: 70px;          /* icon button width in the dock */
+  --d-h: 54px;             /* button height in the dock */
+  --d-pad: 6px;            /* dock inner padding */
+  --d-gap: 4px;            /* gap between dock buttons */
+  --d-icon: 22px;
+  --d-play-w: 136px;
+  --d-copy: 230px;         /* max width of the title/lead column */
+  --d-side: 23%;           /* horizontal inset of the stage (keeps the copy clear) */
+  --d-stage-t: 50px;       /* stage top, below the header */
+  --d-stage-b: 84px;       /* stage bottom, above the dock */
+  --d-ico-gauge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.8 17.5a8.2 8.2 0 1 1 16.4 0'/%3E%3Cpath d='M12 17.5l4.2-5.2'/%3E%3Cpath d='M6.2 11.6l1.3.9M12 7.4v1.5M17.8 11.6l-1.3.9'/%3E%3Ccircle cx='12' cy='17.5' r='1.6' fill='black'/%3E%3C/svg%3E");
+  --d-ico-podium: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.8 20.2h18.4'/%3E%3Cpath d='M9 20.2V10.4h6v9.8'/%3E%3Cpath d='M3.2 20.2v-5.6H9M15 13.2h5.8v7'/%3E%3Cpath d='M12 3.6l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z' fill='black' stroke-width='1'/%3E%3C/svg%3E");
+  --d-ico-sliders: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7.5h9M18.5 7.5H20M4 16.5h3M11.5 16.5H20'/%3E%3Ccircle cx='15.8' cy='7.5' r='2.3'/%3E%3Ccircle cx='9.2' cy='16.5' r='2.3'/%3E%3C/svg%3E");
+  --d-ico-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='9.5' rx='2.4'/%3E%3Cpath d='M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5'/%3E%3Cpath d='M12 14.2v2.2'/%3E%3C/svg%3E");
+  --d-ico-daily: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3.8'/%3E%3Cpath d='M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5L7 7M17 17l1.5 1.5M5.5 18.5L7 17M17 7l1.5-1.5'/%3E%3C/svg%3E");
+  --d-ico-play: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.5 4.8v14.4a.8.8 0 0 0 1.2.7l11.2-7.2a.8.8 0 0 0 0-1.4L8.7 4.1a.8.8 0 0 0-1.2.7z' fill='black' stroke='none'/%3E%3C/svg%3E");
+  grid-template-rows: auto minmax(0, 1fr);
+}
+#menu[data-layout="dock"][data-mode="zombie"] { --d-ico-daily: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.6 14.6A8 8 0 1 1 9.4 4.4a6.3 6.3 0 0 0 10.2 10.2z'/%3E%3Cpath d='M16.5 3.5v3M15 5h3' stroke-width='1.6'/%3E%3C/svg%3E"); }
+
+/* ---- stage: the hero, centred between header and dock ----------------- */
+#menu[data-layout="dock"] .menu-stage {
+  top: calc(var(--safe-t) + var(--d-stage-t));
+  bottom: calc(var(--safe-b) + var(--d-stage-b));
+  left: var(--d-side); right: var(--d-side);
+}
+
+/* ---- main / home grid ------------------------------------------------ */
+#menu[data-layout="dock"] .menu-main {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+#menu[data-layout="dock"] .menu-home {
+  grid-column: 1 / -1;
+  position: relative; z-index: 0;
+  height: 100%; min-height: 0; max-width: none;
+  display: grid;
+  /* | free | Obt | Reb | HRAŤ | Denná | Nast | Vyl | free | */
+  grid-template-columns: minmax(0, 1fr) repeat(6, auto) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
+  grid-template-areas: none;
+  column-gap: var(--d-gap); row-gap: 0;
+  align-items: center;
+}
+#menu[data-layout="dock"] .menu-cta,
+#menu[data-layout="dock"] .menu-nav { display: contents; }
+
+/* copy column */
+#menu[data-layout="dock"] :is(.menu-kicker, .menu-title, .menu-lead) {
+  grid-area: auto; grid-column: 1 / -1;
+  justify-self: start; align-self: auto;
+  width: auto; max-width: var(--d-copy); margin: 0;
+}
+#menu[data-layout="dock"] .menu-kicker { grid-row: 2; font-size: 12px; }
+#menu[data-layout="dock"] .menu-title {
+  grid-row: 3; margin-top: 4px;
+  font-size: clamp(22px, 3.1vw, 30px); line-height: 1.04; letter-spacing: -0.015em;
+}
+#menu[data-layout="dock"] .menu-lead {
+  grid-row: 4; margin-top: 8px;
+  font-size: 12.5px; line-height: 1.42;
+}
+
+/* ★ / ⚙ readout: under the account pill, top right */
+#menu[data-layout="dock"] .menu-stats {
+  grid-area: auto;
+  position: absolute; top: 0; right: 0;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 30px; padding: 0 12px;
+  border-radius: 999px;
+  background: var(--m-surface);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+  -webkit-backdrop-filter: blur(var(--m-blur)); backdrop-filter: blur(var(--m-blur));
+}
+#menu[data-layout="dock"] .menu-stats .stat { font-size: 12.5px; }
+
+/* ---- the dock -------------------------------------------------------- */
+#menu[data-layout="dock"] .menu-home::before {        /* floating dock body */
+  content: ""; z-index: -1;
+  grid-row: 6; grid-column: 2 / 8;
+  align-self: stretch; justify-self: stretch;
+  margin: calc(var(--d-pad) * -1) calc(var(--d-pad) * -1 - 2px);
+  border-radius: calc(var(--m-radius) + 4px);
+  background: color-mix(in srgb, var(--m-bg-2) 84%, transparent);
+  box-shadow: var(--m-shadow), inset 0 0 0 1px var(--m-line);
+  -webkit-backdrop-filter: blur(var(--m-blur)) saturate(1.2); backdrop-filter: blur(var(--m-blur)) saturate(1.2);
+  pointer-events: none;
+}
+#menu[data-layout="dock"] .menu-home > .menu-nav > .menu-item,
+#menu[data-layout="dock"] .menu-home > .menu-cta > button { grid-row: 6; align-self: stretch; margin: 0; }
+#menu[data-layout="dock"] .menu-item[data-open="difficulty"]  { grid-column: 2; }
+#menu[data-layout="dock"] .menu-item[data-open="leaderboard"] { grid-column: 3; }
+#menu[data-layout="dock"] .menu-cta #menuPlay                 { grid-column: 4; }
+#menu[data-layout="dock"] .menu-cta [data-open="daily"]       { grid-column: 5; }
+#menu[data-layout="dock"] .menu-item[data-open="settings"]    { grid-column: 6; }
+#menu[data-layout="dock"] .menu-item.is-locked                { grid-column: 7; }
+
+/* icon buttons */
+#menu[data-layout="dock"] .menu-nav .menu-item {
+  position: relative;
+  flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  width: var(--d-tile); min-width: 0; min-height: var(--d-h);
+  padding: 6px 2px 5px;
+  text-align: center;
+}
+#menu[data-layout="dock"] .menu-nav .menu-item::before {
+  content: ""; flex: none;
+  width: var(--d-icon); height: var(--d-icon);
+  background-color: currentColor;
+  -webkit-mask: var(--d-ico) center / contain no-repeat; mask: var(--d-ico) center / contain no-repeat;
+}
+#menu[data-layout="dock"] .menu-item[data-open="difficulty"]  { --d-ico: var(--d-ico-gauge); }
+#menu[data-layout="dock"] .menu-item[data-open="leaderboard"] { --d-ico: var(--d-ico-podium); }
+#menu[data-layout="dock"] .menu-item[data-open="settings"]    { --d-ico: var(--d-ico-sliders); }
+#menu[data-layout="dock"] .menu-item.is-locked                { --d-ico: var(--d-ico-lock); }
+#menu[data-layout="dock"] .menu-nav .menu-item-label {
+  max-width: 100%; font-size: 10.5px; line-height: 1.1; letter-spacing: 0.01em;
+}
+/* values stay readable for screen readers, shown on large screens only */
+#menu[data-layout="dock"] .menu-nav .menu-item-value {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* dock buttons sit on the dock body: no tile chrome of their own
+   (overrides the skins' card/list styles, keeps their text colours) */
+#menu#menu[data-layout="dock"] .menu-nav .menu-item {
+  border-radius: var(--m-radius-sm);
+  background-color: transparent;
+  box-shadow: none; outline: 0;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+#menu#menu[data-layout="dock"][data-mode="basic"] .menu-nav .menu-item { background-image: none; }
+@media (hover: hover) {
+  #menu#menu[data-layout="dock"] .menu-nav .menu-item:not(:disabled):hover {
+    background-color: color-mix(in srgb, var(--m-text) 7%, transparent);
+    box-shadow: none;
+  }
+}
+#menu#menu[data-layout="dock"] .menu-nav .menu-item[aria-expanded="true"] {
+  background-color: color-mix(in srgb, var(--m-accent) 20%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--m-accent);
+}
+#menu#menu[data-layout="dock"] .menu-nav .menu-item.is-locked {
+  opacity: 0.5; background-image: none; background-color: transparent; box-shadow: none; outline: 0;
+}
+
+/* Hrať + Denná výzva */
+#menu[data-layout="dock"] .menu-cta .btn-primary {
+  flex: none; min-width: var(--d-play-w); min-height: var(--d-h);
+  padding: 0 26px 0 22px; gap: 10px;
+  font-size: 18px;
+}
+#menu[data-layout="dock"] .menu-cta .btn-primary::before {
+  content: ""; flex: none; width: 17px; height: 17px;
+  background-color: currentColor;
+  -webkit-mask: var(--d-ico-play) center / contain no-repeat; mask: var(--d-ico-play) center / contain no-repeat;
+}
+#menu[data-layout="dock"] .menu-cta .btn-ghost {
+  flex: none; min-width: 0; min-height: var(--d-h);
+  padding: 0 16px 0 13px; gap: 8px;
+  font-size: 14px;
+}
+#menu[data-layout="dock"] .menu-cta .btn-ghost::before {
+  content: ""; flex: none; width: 19px; height: 19px;
+  background-color: currentColor;
+  -webkit-mask: var(--d-ico-daily) center / contain no-repeat; mask: var(--d-ico-daily) center / contain no-repeat;
+}
+
+/* ---- footer: tucked into the corners beside the dock ------------------ */
+#menu[data-layout="dock"] > .menu-foot {
+  position: absolute; z-index: 2;
+  left: calc(var(--g) + var(--safe-l)); right: calc(var(--g) + var(--safe-r));
+  bottom: calc(var(--g) * 0.5 + var(--safe-b));
+  height: var(--d-h);
+  pointer-events: none;
+}
+#menu[data-layout="dock"] .menu-hint { max-width: calc(50% - 340px); }
+@media (max-width: 1099px) { #menu[data-layout="dock"] .menu-hint { display: none; } }
+
+/* ---- panels: card from the right over the stage ----------------------- */
+#menu[data-layout="dock"] { --panel-w: min(380px, 48%); }
+
+/* =====================================================================
+   Short landscape phones (844x390, 667x375) -- primary target
+   ===================================================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+  #menu[data-layout="dock"] {
+    --d-stage-t: 30px; --d-stage-b: 72px; --d-side: 22%;
+    --d-copy: min(25vw, 220px);
+    --panel-w: min(360px, 46%);
+  }
+  #menu[data-layout="dock"] .menu-stage { left: var(--d-side); }
+  #menu[data-layout="dock"] .menu-title { font-size: clamp(21px, 3vw, 27px); }
+  #menu[data-layout="dock"] .menu-lead { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  #menu[data-layout="dock"] .menu-panel { top: 0; bottom: 0; }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+  #menu[data-layout="dock"] { --d-h: 50px; --d-stage-b: 66px; --d-stage-t: 28px; }
+  #menu[data-layout="dock"] .menu-lead { -webkit-line-clamp: 5; }
+}
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 760px) {
+  #menu[data-layout="dock"] { --d-tile: 62px; --d-play-w: 116px; --d-side: 21%; --d-copy: 27vw; }
+  #menu[data-layout="dock"] .menu-nav .menu-item-label { font-size: 10px; letter-spacing: 0; }
+  #menu[data-layout="dock"] .menu-cta .btn-primary { padding: 0 20px 0 16px; font-size: 17px; }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost { padding: 0 12px 0 10px; font-size: 13px; }
+}
+
+/* =====================================================================
+   Desktop / tablet landscape
+   ===================================================================== */
+@media (orientation: landscape) and (min-height: 501px) {
+  #menu[data-layout="dock"] {
+    --d-tile: 78px; --d-h: 66px; --d-pad: 8px; --d-gap: 6px; --d-icon: 25px;
+    --d-play-w: 210px;
+    --d-copy: min(22vw, 330px);
+    --d-side: 22%;
+    --d-stage-t: calc(var(--g) * 0.6 + 60px);
+    --d-stage-b: calc(var(--g) * 0.5 + 66px + 16px + 24px);
+    --panel-w: min(420px, 34%);
+  }
+  #menu[data-layout="dock"] .menu-kicker { font-size: 14px; }
+  #menu[data-layout="dock"] .menu-title { font-size: clamp(30px, 2.7vw, 40px); margin-top: 6px; }
+  #menu[data-layout="dock"] .menu-lead { font-size: 15.5px; margin-top: 12px; }
+  #menu[data-layout="dock"] .menu-stats { min-height: 36px; padding: 0 16px; gap: 16px; }
+  #menu[data-layout="dock"] .menu-stats .stat { font-size: 14px; }
+  #menu[data-layout="dock"] .menu-nav .menu-item { gap: 3px; padding: 7px 4px; }
+  #menu[data-layout="dock"] .menu-nav .menu-item-label { font-size: 12px; }
+  #menu[data-layout="dock"] .menu-nav .menu-item-value {
+    position: static; width: auto; height: auto; overflow: hidden; clip: auto; clip-path: none;
+    max-width: 100%; font-size: 10.5px; line-height: 1.1; text-overflow: ellipsis; color: var(--m-muted);
+  }
+  #menu[data-layout="dock"] .menu-cta .btn-primary { font-size: 21px; gap: 12px; }
+  #menu[data-layout="dock"] .menu-cta .btn-primary::before { width: 19px; height: 19px; }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost { font-size: 15px; padding: 0 22px 0 18px; gap: 10px; }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost::before { width: 21px; height: 21px; }
+  #menu[data-layout="dock"] .menu-home::before { margin: calc(var(--d-pad) * -1) calc(var(--d-pad) * -1 - 2px); }
+  #menu[data-layout="dock"] .menu-panel {     /* stops above the dock */
+    top: 0; bottom: calc(var(--d-h) + var(--d-pad) * 2 + 16px); right: 0; margin: 0; height: auto; max-height: none;
+    padding: 0 22px 22px;
+  }
+}
+
+/* =====================================================================
+   Portrait: copy above the dock, stage fills the space above.
+   Phones get a two-tier dock; tablets keep a single row.
+   ===================================================================== */
+@media (orientation: portrait) {
+  #menu[data-layout="dock"] {
+    --d-side: 0px;
+    --d-copy: 34ch;
+    --d-stage-t: 108px;
+    --d-stage-b: 300px;
+  }
+  #menu[data-layout="dock"] .menu-stage { left: 0; right: 0; height: auto; }
+  #menu[data-layout="dock"] .mode-switch { justify-self: center; }
+  #menu[data-layout="dock"] .mode-opt { min-width: 118px; }
+  #menu[data-layout="dock"] .menu-main { align-items: stretch; }
+  #menu[data-layout="dock"] .menu-home {
+    grid-template-rows: minmax(0, 1fr) auto auto auto auto;
+  }
+  #menu[data-layout="dock"] .menu-home > .menu-nav > .menu-item,
+  #menu[data-layout="dock"] .menu-home > .menu-cta > button { grid-row: 5; }
+  #menu[data-layout="dock"] .menu-home::before { grid-row: 5; }
+  #menu[data-layout="dock"] .menu-lead { margin-bottom: calc(var(--d-pad) + 16px); font-size: 14px; }
+  #menu[data-layout="dock"] .menu-title { font-size: clamp(30px, 8.6vw, 44px); }
+  #menu[data-layout="dock"] .menu-kicker { font-size: 13px; }
+}
+@media (orientation: portrait) and (max-width: 559px) {
+  #menu[data-layout="dock"] {
+    --d-h: 54px; --d-pad: 7px; --d-gap: 6px;
+    --d-stage-b: 296px;
+  }
+  #menu[data-layout="dock"] .menu-home {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) auto auto auto auto auto;
+  }
+  #menu[data-layout="dock"] .menu-home::before { grid-row: 5 / 7; grid-column: 1 / -1; margin: calc(var(--d-pad) * -1); }
+  #menu[data-layout="dock"] .menu-home > .menu-nav > .menu-item { grid-row: 6; }
+  #menu[data-layout="dock"] .menu-cta #menuPlay                 { grid-column: 2 / 5; }
+  #menu[data-layout="dock"] .menu-cta [data-open="daily"]       { grid-column: 1; }
+  #menu[data-layout="dock"] .menu-item[data-open="difficulty"]  { grid-column: 1; }
+  #menu[data-layout="dock"] .menu-item[data-open="leaderboard"] { grid-column: 2; }
+  #menu[data-layout="dock"] .menu-item[data-open="settings"]    { grid-column: 3; }
+  #menu[data-layout="dock"] .menu-item.is-locked                { grid-column: 4; }
+  #menu[data-layout="dock"] .menu-home > .menu-cta > button { margin-bottom: var(--d-gap); min-height: 56px; }
+  #menu[data-layout="dock"] .menu-cta .btn-primary { min-width: 0; font-size: 19px; }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost {
+    flex-direction: column; gap: 3px; padding: 4px 4px;
+    white-space: normal; text-align: center; line-height: 1.05; font-size: 12px;
+  }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost::before { width: 18px; height: 18px; }
+  #menu[data-layout="dock"] .menu-nav .menu-item { width: auto; }
+  #menu[data-layout="dock"] .menu-nav .menu-item-label { font-size: 11px; }
+  #menu[data-layout="dock"] > .menu-foot { display: none; }
+}
+@media (orientation: portrait) and (min-width: 560px) {
+  #menu[data-layout="dock"] {
+    --d-tile: 76px; --d-h: 64px; --d-pad: 8px; --d-gap: 6px; --d-icon: 25px; --d-play-w: 170px;
+    --d-copy: 40ch;
+    --d-stage-t: calc(var(--g) * 0.6 + 120px);
+    --d-stage-b: 360px;
+  }
+  #menu[data-layout="dock"] .menu-lead { font-size: 16px; }
+  #menu[data-layout="dock"] .menu-title { font-size: clamp(40px, 6vw, 56px); }
+  #menu[data-layout="dock"] .menu-nav .menu-item-label { font-size: 12px; }
+  #menu[data-layout="dock"] .menu-cta .btn-primary { font-size: 20px; }
+  #menu[data-layout="dock"] .menu-cta .btn-ghost { font-size: 15px; }
+  #menu[data-layout="dock"] > .menu-foot { display: none; }
+}
+@media (orientation: portrait) and (max-width: 360px) {
+  #menu[data-layout="dock"] .mode-opt { min-width: 100px; }
+}
+
+/* leaderboard: the list scrolls inside the panel, so the sticky "Ty" row
+   rests on the panel padding instead of floating over half-hidden rows */
+#menu[data-layout="dock"] .menu-panel[data-screen="leaderboard"] { overflow: hidden; }
+#menu[data-layout="dock"] .menu-panel[data-screen="leaderboard"] .lb-list {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}

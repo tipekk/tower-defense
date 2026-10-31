@@ -1,0 +1,523 @@
+/* src/ui/layouts/rail.css -- alternative menu layout "rail".
+   Activated by #menu[data-layout="rail"] (+ this <link>). LAYOUT ONLY:
+   positions, sizes, order, breakpoints. Colours come from the skin tokens.
+
+   Landscape / desktop: a full-height vertical rail on the left
+     (monogram, vertical mode switch, icon nav, stats + account at the
+     bottom); next to it the title column; the 3D stage fills the right.
+     Panels open as a column right next to the rail, over the title
+     (the title slides away), never over the stage.
+   Portrait: mode switch full width on top, stage, title + CTA, and the
+     rail turns into a bottom tab bar (4 nav tabs + account). Panels rise
+     from behind the tab bar.
+
+   Mechanics: .menu-top, .menu-main and .menu-home become display:contents
+   so their children are placed directly on the #menu grid. Rail pieces
+   have fixed heights and are absolutely positioned from CSS variables;
+   the title column stays in normal flow (vertically centred). The rail
+   surface is .menu-main::after, the monogram is .menu-top::before (both
+   pseudo-elements unused by the skins). */
+
+#menu[data-layout="rail"] {
+  /* ---- rail metrics (landscape phone defaults) ---- */
+  --rail: 84px;          /* rail width (without safe-area) */
+  --rp: 6px;             /* rail inner side padding */
+  --rg: 10px;            /* gap between rail groups */
+  --r-top: calc(var(--safe-t) + 8px);
+  --r-bot: calc(var(--safe-b) + 8px);
+  --mono: 40px;          /* monogram tile */
+  --opt: 42px;           /* one mode option (switch = 2 * opt + 8) */
+  --item: 48px;          /* nav item */
+  --acc: 54px;           /* account button */
+  --stats-h: 34px;
+  --icon: 22px;
+  --cx: clamp(22px, 3.4vw, 64px);   /* gutter between rail and title column */
+  --content: clamp(280px, 44%, 640px);
+
+  --sw-top: calc(var(--r-top) + var(--mono) + var(--rg));
+  --nav-top: calc(var(--sw-top) + var(--opt) * 2 + 8px + var(--rg));
+
+  display: grid;
+  padding: 0;
+  row-gap: 0;
+  column-gap: 0;
+  grid-template-columns:
+    calc(var(--safe-l) + var(--rail))   /* 1 rail */
+    var(--cx)                           /* 2 gutter */
+    minmax(0, var(--content))           /* 3 title column */
+    minmax(0, 1fr);                     /* 4 stage */
+  grid-template-rows:
+    auto                 /* 1 brand line */
+    minmax(0, 1fr)
+    auto auto auto auto  /* 3-6 kicker, title, lead, cta */
+    minmax(0, 1fr);      /* 7 (footer sits at its bottom) */
+}
+
+/* flatten the wrappers onto the #menu grid */
+#menu[data-layout="rail"] > .menu-top,
+#menu[data-layout="rail"] > .menu-main,
+#menu[data-layout="rail"] .menu-home,
+#menu[data-layout="rail"] .menu-acct { display: contents; }
+
+/* ---- rail surface ------------------------------------------------------ */
+#menu[data-layout="rail"] .menu-main::after {
+  content: "";
+  position: relative; z-index: 5;
+  grid-column: 1; grid-row: 1 / -1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--m-bg-2) 78%, transparent);
+  box-shadow: inset -1px 0 0 var(--m-line), 8px 0 32px -24px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(var(--m-blur)); backdrop-filter: blur(var(--m-blur));
+}
+
+/* everything that lives in the rail */
+#menu[data-layout="rail"] .menu-top::before,
+#menu[data-layout="rail"] .mode-switch,
+#menu[data-layout="rail"] .menu-nav,
+#menu[data-layout="rail"] .menu-account,
+#menu[data-layout="rail"] .menu-stats {
+  position: absolute; z-index: 6;
+  left: calc(var(--safe-l) + var(--rp));
+  width: calc(var(--rail) - var(--rp) * 2);
+  margin: 0;
+}
+
+/* monogram */
+#menu[data-layout="rail"] .menu-top::before {
+  content: "BG";
+  top: var(--r-top);
+  left: calc(var(--safe-l) + (var(--rail) - var(--mono)) / 2);
+  width: var(--mono); height: var(--mono);
+  display: grid; place-items: center;
+  border-radius: var(--m-radius-sm);
+  font-family: var(--m-font-display); font-weight: 800;
+  font-size: calc(var(--mono) * 0.42); line-height: 1; letter-spacing: -0.02em;
+  color: var(--m-bg);
+  background: var(--m-text);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+  pointer-events: none;
+  transition: background-color var(--m-fade) ease, color var(--m-fade) ease;
+}
+
+/* vertical mode switch */
+#menu[data-layout="rail"] .mode-switch {
+  top: var(--sw-top);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--opt) var(--opt);
+  padding: 4px;
+  border-radius: calc(var(--m-radius-sm) + 4px);
+}
+#menu[data-layout="rail"] .mode-thumb {
+  top: 4px; left: 4px; right: 4px; bottom: auto;
+  width: auto; height: var(--opt);
+  border-radius: var(--m-radius-sm);
+}
+#menu[data-layout="rail"][data-mode="zombie"] .mode-thumb { transform: translateY(100%); }
+#menu[data-layout="rail"] .mode-opt {
+  min-width: 0; width: 100%; min-height: 0; height: var(--opt);
+  padding: 0 2px;
+  border-radius: var(--m-radius-sm);
+  font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: clip;
+}
+
+/* icon nav */
+#menu[data-layout="rail"] .menu-nav {
+  top: var(--nav-top);
+  display: flex; flex-direction: column; gap: 2px;
+  grid-template-columns: none;
+}
+#menu[data-layout="rail"][data-mode] .menu-item {
+  position: relative;
+  flex: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  width: 100%; min-width: 0; min-height: var(--item); height: var(--item);
+  padding: 2px 0;
+  border-radius: var(--m-radius-sm);
+  text-align: center;
+  background-color: transparent;
+  box-shadow: none; outline: 0;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+#menu[data-layout="rail"][data-mode="basic"] .menu-item:not(.is-locked) { background-image: none; }
+#menu[data-layout="rail"][data-mode] .menu-item:hover:not(:disabled) { background-color: var(--m-surface); box-shadow: none; }
+#menu[data-layout="rail"][data-mode] .menu-item[aria-expanded="true"] {
+  background-color: var(--m-surface-2);
+  box-shadow: none;
+}
+#menu[data-layout="rail"] .menu-item::before {          /* icon */
+  content: ""; flex: none;
+  width: var(--icon); height: var(--icon);
+  background-color: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+}
+#menu[data-layout="rail"] .menu-item::after {           /* active marker on the rail edge */
+  content: "";
+  position: absolute; top: 22%; bottom: 22%; left: calc(var(--rp) * -1);
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--m-accent);
+  transform: scaleY(0); transition: transform var(--m-dur) var(--m-ease);
+}
+#menu[data-layout="rail"] .menu-item[aria-expanded="true"]::after { transform: scaleY(1); }
+#menu[data-layout="rail"][data-mode] .menu-item.is-locked { opacity: 0.45; background-image: none; outline: 0; box-shadow: none; }
+#menu[data-layout="rail"] .menu-item-label {
+  max-width: 100%;
+  font-size: 11px; line-height: 1.1; font-weight: 600; letter-spacing: 0;
+}
+#menu[data-layout="rail"] .menu-item-value { display: none; }
+
+#menu[data-layout="rail"] .menu-item[data-open="difficulty"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 17a8.5 8.5 0 1 1 17 0'/%3E%3Cpath d='M12 17l4.2-5.2'/%3E%3Ccircle cx='12' cy='17' r='1.6' fill='black'/%3E%3Cpath d='M6.3 11.3l1.2.9M12 8.5v1.4M17.7 11.3l-1.2.9'/%3E%3C/svg%3E"); }
+#menu[data-layout="rail"] .menu-item[data-open="leaderboard"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 20.5h18'/%3E%3Cpath d='M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8.5h5v8.5'/%3E%3Cpath d='M12 3.5l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7-1.3-1.2 1.7-.2z' fill='black' stroke-width='1'/%3E%3C/svg%3E"); }
+#menu[data-layout="rail"] .menu-item[data-open="settings"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'%3E%3Cpath d='M4 7h9M18 7h2M4 17h3M12 17h8'/%3E%3Ccircle cx='15.5' cy='7' r='2.4'/%3E%3Ccircle cx='9.5' cy='17' r='2.4'/%3E%3C/svg%3E"); }
+#menu[data-layout="rail"] .menu-item.is-locked { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2c-2.2 0-4 1.6-4 3.6s1.8 3.6 4 3.6 4-1.6 4-3.6-1.8-3.6-4-3.6z'/%3E%3Cpath d='M12 10.4v10.4M12 15h3.2M12 18.4h2.2'/%3E%3C/svg%3E"); }
+
+/* account at the bottom of the rail */
+#menu[data-layout="rail"][data-mode] .menu-account {
+  bottom: var(--r-bot);
+  height: var(--acc); min-height: 44px; max-width: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 3px 2px;
+  border-radius: var(--m-radius-sm);
+  background-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+#menu[data-layout="rail"][data-mode] .menu-account:hover { background-color: var(--m-surface); box-shadow: none; }
+#menu[data-layout="rail"][data-mode] .menu-account[aria-expanded="true"] { background-color: var(--m-surface-2); }
+#menu[data-layout="rail"] .menu-avatar { width: 30px; height: 30px; font-size: 13px; }
+#menu[data-layout="rail"] .menu-avatar svg { width: 16px; height: 16px; }
+#menu[data-layout="rail"] .menu-account-name {
+  display: block; max-width: 100%;
+  font-size: 11px; line-height: 1.1;
+}
+
+/* stats above the account */
+#menu[data-layout="rail"] .menu-stats {
+  bottom: calc(var(--r-bot) + var(--acc) + 4px);
+  height: var(--stats-h);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding-top: 6px;
+  border-top: 1px solid var(--m-line);
+}
+#menu[data-layout="rail"] .menu-stats .stat { font-size: 12px; line-height: 1.15; gap: 3px; }
+#menu[data-layout="rail"] .menu-stats .stat b { font-size: 12.5px; }
+
+/* ---- title column ------------------------------------------------------- */
+#menu[data-layout="rail"] .menu-brand,
+#menu[data-layout="rail"] .menu-kicker,
+#menu[data-layout="rail"] .menu-title,
+#menu[data-layout="rail"] .menu-lead,
+#menu[data-layout="rail"] .menu-cta {
+  position: relative; z-index: 2;
+  grid-column: 3;
+  min-width: 0;
+  transition:
+    opacity var(--m-dur) ease,
+    transform calc(var(--m-dur) * 1.3) var(--m-ease),
+    visibility 0s linear 0s;
+}
+#menu[data-layout="rail"] .menu-brand {
+  grid-row: 1; align-self: start;
+  flex-direction: row; align-items: baseline; flex-wrap: wrap; column-gap: 10px;
+  padding-top: calc(var(--safe-t) + 14px);
+}
+#menu[data-layout="rail"] .menu-logo { font-size: 15px; }
+#menu[data-layout="rail"] .menu-tagline { font-size: 12px; }
+#menu[data-layout="rail"] .menu-kicker { grid-row: 3; margin: 0; }
+#menu[data-layout="rail"] .menu-title {
+  grid-row: 4; margin: 6px 0 0;
+  font-size: clamp(34px, min(6.2vw, 12.5vh), 104px);
+  line-height: 0.96;
+  overflow-wrap: break-word;
+}
+#menu[data-layout="rail"] .menu-lead { grid-row: 5; margin: 12px 0 0; max-width: 40ch; }
+#menu[data-layout="rail"] .menu-cta { grid-row: 6; margin: 20px 0 0; flex-wrap: nowrap; }
+#menu[data-layout="rail"] .menu-cta .btn-primary { flex: 1 1 0; min-width: 0; max-width: 220px; }
+#menu[data-layout="rail"] .menu-cta .btn-ghost { flex: 0 1 auto; min-width: 0; }
+
+/* a panel is open: the title column steps aside */
+#menu[data-layout="rail"]:not([data-screen="home"]) :is(.menu-brand, .menu-kicker, .menu-title, .menu-lead, .menu-cta) {
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateX(40px);
+  transition:
+    opacity var(--m-dur) ease,
+    transform calc(var(--m-dur) * 1.3) var(--m-ease),
+    visibility 0s linear var(--m-dur);
+}
+
+/* ---- stage + footer ----------------------------------------------------- */
+#menu[data-layout="rail"] .menu-stage {
+  grid-column: 4 / 5; grid-row: 1 / -1;
+  top: 0; bottom: 0; right: 0; left: -2%;
+  width: auto; height: auto;
+}
+#menu[data-layout="rail"] > .menu-foot {
+  position: relative; z-index: 2;
+  grid-column: 4; grid-row: 7;
+  align-self: end;
+  padding: 0 calc(var(--safe-r) + 16px) calc(var(--safe-b) + 10px) 16px;
+}
+
+/* ---- panels: a column right next to the rail ------------------------------ */
+#menu[data-layout="rail"] .menu-panel {
+  position: absolute; z-index: 4;
+  grid-column: 2 / 4; grid-row: 1 / -1;
+  top: calc(var(--safe-t) + 8px); bottom: calc(var(--safe-b) + 8px);
+  left: 8px; right: auto;
+  width: min(calc(100% - 8px), 460px);
+  height: auto; max-height: none;
+  margin: 0;
+  padding: 0 14px 14px;
+  border-radius: var(--m-radius);
+  transform: translateX(-36px);
+  opacity: 0;
+  transition: opacity var(--m-dur) ease, transform var(--m-dur) var(--m-ease), visibility 0s linear var(--m-dur);
+}
+#menu[data-layout="rail"][data-screen="leaderboard"] .menu-panel[data-screen="leaderboard"],
+#menu[data-layout="rail"][data-screen="difficulty"]  .menu-panel[data-screen="difficulty"],
+#menu[data-layout="rail"][data-screen="login"]       .menu-panel[data-screen="login"],
+#menu[data-layout="rail"][data-screen="settings"]    .menu-panel[data-screen="settings"] {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+  transition: opacity var(--m-dur) ease, transform calc(var(--m-dur) * 1.3) var(--m-ease), visibility 0s;
+}
+#menu[data-layout="rail"] .panel-head { margin: 0 -14px 4px; padding: 6px 14px 6px 4px; }
+#menu[data-layout="rail"] .panel-head::before { content: none; }
+
+/* =====================================================================
+   Landscape, short (phones). Height is the constraint: stats move up to
+   the brand line, the account shows only its avatar.
+   ===================================================================== */
+@media (orientation: landscape) and (max-height: 430px) {
+  #menu[data-layout="rail"] {
+    --rail: 80px; --rg: 8px; --mono: 36px; --opt: 40px; --item: 46px; --acc: 46px;
+    --r-top: calc(var(--safe-t) + 7px); --r-bot: calc(var(--safe-b) + 7px);
+  }
+  #menu[data-layout="rail"] .menu-account-name { display: none; }
+  #menu[data-layout="rail"] .menu-avatar { width: 34px; height: 34px; }
+  #menu[data-layout="rail"] .menu-stats {
+    position: relative; z-index: 2;
+    left: auto; bottom: auto; width: auto; height: auto;
+    grid-column: 4; grid-row: 1; justify-self: end; align-self: start;
+    flex-direction: row; gap: 12px;
+    padding: calc(var(--safe-t) + 14px) calc(var(--safe-r) + 14px) 0 0; border-top: 0;
+  }
+  #menu[data-layout="rail"] .menu-stats .stat { font-size: 13px; }
+  #menu[data-layout="rail"] .menu-stats .stat b { font-size: 14px; }
+  #menu[data-layout="rail"] .menu-lead { font-size: 13.5px; margin-top: 8px; }
+  #menu[data-layout="rail"] .menu-cta { margin-top: 14px; }
+  #menu[data-layout="rail"] .menu-cta .btn-primary,
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { min-height: 48px; }
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { padding: 0 16px; }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+  #menu[data-layout="rail"] {
+    --rg: 6px; --mono: 32px; --opt: 36px; --item: 44px; --acc: 44px;
+    --r-top: calc(var(--safe-t) + 6px); --r-bot: calc(var(--safe-b) + 6px);
+  }
+  #menu[data-layout="rail"] .menu-avatar { width: 32px; height: 32px; }
+}
+@media (orientation: landscape) and (max-height: 430px) and (max-width: 720px) {
+  #menu[data-layout="rail"] { --rp: 4px; --content: 50%; }
+  #menu[data-layout="rail"] .menu-item-label { font-size: 10.5px; }
+  #menu[data-layout="rail"] .menu-stage { left: -10%; }
+  #menu[data-layout="rail"] .menu-tagline { display: none; }
+  #menu[data-layout="rail"] .menu-cta { gap: 8px; }
+}
+
+/* =====================================================================
+   Large landscape (tablet landscape, desktop): roomier rail with values.
+   ===================================================================== */
+@media (orientation: landscape) and (min-height: 501px) and (min-width: 900px) {
+  #menu[data-layout="rail"] {
+    --rail: 112px; --rp: 10px; --rg: 18px; --mono: 52px; --opt: 46px; --item: 72px; --acc: 76px; --stats-h: 52px;
+    --icon: 24px;
+    --r-top: calc(var(--safe-t) + 18px); --r-bot: calc(var(--safe-b) + 14px);
+    --cx: clamp(40px, 4.4vw, 80px);
+    --content: clamp(380px, 42%, 640px);
+  }
+  #menu[data-layout="rail"] .mode-opt { font-size: 14px; }
+  #menu[data-layout="rail"] .menu-nav { gap: 4px; }
+  #menu[data-layout="rail"] .menu-item-label { font-size: 13px; }
+  #menu[data-layout="rail"] .menu-item-value { display: block; font-size: 11px; line-height: 1.1; }
+  #menu[data-layout="rail"] .menu-avatar { width: 38px; height: 38px; font-size: 16px; }
+  #menu[data-layout="rail"] .menu-account-name { font-size: 12px; }
+  #menu[data-layout="rail"] .menu-stats .stat { font-size: 13px; }
+  #menu[data-layout="rail"] .menu-stats .stat b { font-size: 15px; }
+  #menu[data-layout="rail"] .menu-brand { padding-top: calc(var(--safe-t) + 30px); }
+  #menu[data-layout="rail"] .menu-logo { font-size: 18px; }
+  #menu[data-layout="rail"] .menu-tagline { font-size: 13px; }
+  #menu[data-layout="rail"] .menu-title { font-size: clamp(56px, min(6vw, 11vh), 112px); }
+  #menu[data-layout="rail"] .menu-lead { margin-top: 18px; font-size: 17px; }
+  #menu[data-layout="rail"] .menu-cta { margin-top: 30px; gap: 12px; }
+  #menu[data-layout="rail"] .menu-cta .btn-primary { flex: 0 1 240px; max-width: 240px; min-height: 58px; }
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { min-height: 58px; padding: 0 26px; }
+  #menu[data-layout="rail"] .menu-panel {
+    top: calc(var(--safe-t) + 18px); bottom: calc(var(--safe-b) + 18px); left: 0;
+    width: min(100%, 480px);
+    padding: 0 22px 22px;
+  }
+  #menu[data-layout="rail"] .panel-head { margin: 0 -22px 8px; padding: 16px 22px 10px 12px; }
+}
+
+/* =====================================================================
+   Portrait: the rail becomes a bottom tab bar.
+   ===================================================================== */
+@media (orientation: portrait) {
+  #menu[data-layout="rail"] {
+    --g: 18px;
+    --tab: 60px;
+    --mono: 36px;
+    --icon: 22px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+      auto             /* 1 brand line */
+      auto             /* 2 mode switch */
+      minmax(0, 1fr)   /* 3 stage */
+      auto auto auto auto  /* 4-7 kicker, title, lead, cta */
+      auto;            /* 8 tab bar */
+  }
+  #menu[data-layout="rail"] .menu-main::after {
+    grid-column: 1; grid-row: 8;
+    height: calc(var(--tab) + var(--safe-b));
+    margin-top: 16px;
+    box-shadow: inset 0 1px 0 var(--m-line), 0 -8px 32px -24px rgba(0, 0, 0, 0.5);
+  }
+
+  /* top line: monogram, brand, stats */
+  #menu[data-layout="rail"] .menu-top::before {
+    position: relative; z-index: 2;
+    grid-column: 1; grid-row: 1; justify-self: start; align-self: center;
+    top: auto; left: auto;
+    margin: calc(var(--safe-t) + 12px) 0 0 calc(var(--safe-l) + var(--g));
+  }
+  #menu[data-layout="rail"] .menu-brand {
+    grid-column: 1; grid-row: 1; align-self: center;
+    flex-direction: column; align-items: flex-start; gap: 0;
+    padding: calc(var(--safe-t) + 12px) 110px 0 calc(var(--safe-l) + var(--g) + var(--mono) + 12px);
+  }
+  #menu[data-layout="rail"] .menu-tagline { max-width: 100%; }
+  #menu[data-layout="rail"] .menu-stats {
+    position: relative; z-index: 2;
+    grid-column: 1; grid-row: 1; justify-self: end; align-self: center;
+    left: auto; bottom: auto; width: auto; height: auto;
+    flex-direction: row; gap: 12px;
+    margin: calc(var(--safe-t) + 12px) calc(var(--safe-r) + var(--g)) 0 0;
+    padding: 0; border-top: 0;
+  }
+  #menu[data-layout="rail"] .menu-stats .stat { font-size: 13px; }
+  #menu[data-layout="rail"] .menu-stats .stat b { font-size: 14.5px; }
+
+  /* mode switch: full width, horizontal */
+  #menu[data-layout="rail"] .mode-switch {
+    position: relative; z-index: 2;
+    grid-column: 1; grid-row: 2;
+    top: auto; left: auto; width: auto;
+    margin: 14px calc(var(--safe-r) + var(--g)) 0 calc(var(--safe-l) + var(--g));
+    grid-template-columns: 1fr 1fr; grid-template-rows: none;
+    border-radius: 999px;
+  }
+  #menu[data-layout="rail"] .mode-thumb {
+    top: 4px; bottom: 4px; left: 4px; right: auto;
+    width: calc(50% - 4px); height: auto;
+    border-radius: 999px;
+  }
+  #menu[data-layout="rail"][data-mode="zombie"] .mode-thumb { transform: translateX(100%); }
+  #menu[data-layout="rail"] .mode-opt { height: 44px; border-radius: 999px; font-size: 14px; }
+
+  /* stage */
+  #menu[data-layout="rail"] .menu-stage {
+    grid-column: 1 / 2; grid-row: 3 / 4;
+    top: 0; bottom: 0; left: 0; right: 0;
+  }
+
+  /* title block */
+  #menu[data-layout="rail"] .menu-kicker,
+  #menu[data-layout="rail"] .menu-title,
+  #menu[data-layout="rail"] .menu-lead,
+  #menu[data-layout="rail"] .menu-cta {
+    grid-column: 1;
+    margin-left: calc(var(--safe-l) + var(--g));
+    margin-right: calc(var(--safe-r) + var(--g));
+  }
+  #menu[data-layout="rail"] .menu-kicker { grid-row: 4; }
+  #menu[data-layout="rail"] .menu-title { grid-row: 5; font-size: clamp(38px, 11.5vw, 84px); }
+  #menu[data-layout="rail"] .menu-lead { grid-row: 6; margin-top: 10px; font-size: 14.5px; }
+  #menu[data-layout="rail"] .menu-cta { grid-row: 7; margin-top: 18px; }
+  #menu[data-layout="rail"] .menu-cta .btn-primary { flex: 1 1 0; max-width: none; }
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { flex: 0 1 auto; }
+  #menu[data-layout="rail"]:not([data-screen="home"]) :is(.menu-brand, .menu-kicker, .menu-title, .menu-lead, .menu-cta) {
+    transform: none; opacity: 1; visibility: visible;
+  }
+
+  /* tab bar: 4 nav tabs + account, five equal cells */
+  #menu[data-layout="rail"] .menu-nav,
+  #menu[data-layout="rail"][data-mode] .menu-account {
+    top: auto; bottom: var(--safe-b);
+    height: var(--tab);
+  }
+  #menu[data-layout="rail"] .menu-nav {
+    left: var(--safe-l);
+    width: calc((100% - var(--safe-l) - var(--safe-r)) * 0.8);
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
+    padding: 4px 0 4px 6px;
+  }
+  #menu[data-layout="rail"][data-mode] .menu-account {
+    left: auto; right: var(--safe-r);
+    width: calc((100% - var(--safe-l) - var(--safe-r)) * 0.2);
+    padding: 4px 6px 4px 0;
+    background-clip: content-box;
+  }
+  #menu[data-layout="rail"][data-mode] .menu-item { height: 100%; min-height: 44px; }
+  #menu[data-layout="rail"] .menu-item::after {
+    top: -4px; bottom: auto; left: 26%; right: 26%;
+    width: auto; height: 3px; border-radius: 0 0 3px 3px;
+    transform: scaleX(0);
+  }
+  #menu[data-layout="rail"] .menu-item[aria-expanded="true"]::after { transform: scaleX(1); }
+  #menu[data-layout="rail"] .menu-avatar { width: 26px; height: 26px; font-size: 12px; }
+  #menu[data-layout="rail"] .menu-avatar svg { width: 15px; height: 15px; }
+  #menu[data-layout="rail"] .menu-account-name { display: block; font-size: 11px; }
+
+  #menu[data-layout="rail"] > .menu-foot { display: none; }
+
+  /* panel: rises from behind the tab bar */
+  #menu[data-layout="rail"] .menu-panel {
+    position: absolute; z-index: 4;
+    grid-column: 1; grid-row: 1 / -1;
+    top: auto; left: 0; right: 0;
+    bottom: calc(var(--tab) + var(--safe-b));
+    width: min(100%, 640px); margin: 0 auto;
+    max-height: calc(100% - var(--tab) - var(--safe-b) - var(--safe-t) - 64px);
+    padding: 0 calc(16px + var(--safe-r)) 16px calc(16px + var(--safe-l));
+    border-radius: var(--m-radius) var(--m-radius) 0 0;
+    opacity: 1;
+    transform: translateY(calc(100% + var(--tab)));
+    transition: transform calc(var(--m-dur) * 1.2) var(--m-ease), visibility 0s linear calc(var(--m-dur) * 1.2);
+  }
+  #menu[data-layout="rail"] .panel-head { margin: 0 calc(-16px - var(--safe-r)) 6px calc(-16px - var(--safe-l)); padding: 12px 16px 8px 8px; }
+}
+@media (orientation: portrait) and (min-width: 600px) {
+  #menu[data-layout="rail"] { --g: 44px; --tab: 72px; --mono: 44px; --icon: 26px; }
+  #menu[data-layout="rail"] .menu-logo { font-size: 18px; }
+  #menu[data-layout="rail"] .menu-tagline { font-size: 13px; }
+  #menu[data-layout="rail"] .mode-switch { justify-self: start; width: min(420px, 100%); }
+  #menu[data-layout="rail"] .mode-opt { height: 48px; font-size: 16px; }
+  #menu[data-layout="rail"] .menu-kicker,
+  #menu[data-layout="rail"] .menu-title,
+  #menu[data-layout="rail"] .menu-lead,
+  #menu[data-layout="rail"] .menu-cta { max-width: 640px; }
+  #menu[data-layout="rail"] .menu-title { font-size: clamp(56px, 10vw, 96px); }
+  #menu[data-layout="rail"] .menu-lead { font-size: 17px; margin-top: 14px; }
+  #menu[data-layout="rail"] .menu-cta { margin-top: 26px; }
+  #menu[data-layout="rail"] .menu-cta .btn-primary { flex: 0 1 280px; min-height: 58px; }
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { min-height: 58px; padding: 0 26px; }
+  #menu[data-layout="rail"] .menu-item-label { font-size: 12.5px; }
+  #menu[data-layout="rail"] .menu-avatar { width: 32px; height: 32px; }
+  #menu[data-layout="rail"] .menu-account-name { font-size: 12.5px; }
+}
+@media (orientation: portrait) and (max-width: 370px) {
+  #menu[data-layout="rail"] { --g: 16px; }
+  #menu[data-layout="rail"] .menu-item-label,
+  #menu[data-layout="rail"] .menu-account-name { font-size: 10.5px; }
+  #menu[data-layout="rail"] .menu-cta .btn-ghost { padding: 0 14px; }
+}
