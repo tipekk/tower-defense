@@ -563,13 +563,9 @@ function setTheme(key) {
   const topHex = '#' + theme.skyTop.toString(16).padStart(6, '0');
   const bottomHex = '#' + theme.skyBottom.toString(16).padStart(6, '0');
   document.body.style.background = `linear-gradient(to bottom, ${topHex}, ${bottomHex})`;
-
-  const label = document.getElementById('themeLabel');
-  if (label) label.textContent = key === 'zombie' ? 'Zombie (noc)' : 'Basic (den)';
 }
 
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyT') setTheme(themeKey === 'basic' ? 'zombie' : 'basic');
   if (e.code === 'Space') { e.preventDefault(); document.getElementById('startWaveBtn')?.click(); }
   if (e.code === 'KeyF') document.getElementById('speedBtn')?.click();
   if (e.code === 'KeyP') document.getElementById('pauseBtn')?.click();
@@ -742,7 +738,7 @@ function animate() {
 
   vignette.render(theme.vignette, themeKey === 'zombie' ? '#05070f' : '#1a2a33');
 
-  renderer.render(scene, camera);
+  if (!document.documentElement.classList.contains('menu-open')) renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
 animate();
