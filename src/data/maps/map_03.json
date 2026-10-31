@@ -71,7 +71,7 @@
   ],
   "description": "Level 3: rovnaky teren, nepriatelia x3.0 HP (hpMultiplier, HP skalovanie od 1. vlny levelu), boss Kukuckovy kolos Magnus (liečivá aura, 4 fazy omracenia).",
   "hpMultiplier": 3.0,
-  "bossHpMultiplier": 0.7,
+  "bossHpMultiplier": 0.45,
   "waves": [
     {
       "index": 1,

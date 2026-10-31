@@ -93,7 +93,7 @@ export const ENEMY_TYPES = {
     stunRadius: 4.5,
     stunDuration: 2.2,
     healRadius: 3,
-    healPctPerSec: 0.03,
+    healPctPerSec: 0.02,
   },
   // Level 4 boss (uloha X): najtazsi kolos. 5 faz omracenia, najrychlejsi
   // vypust (kotlar/vazka/navijac), silnejsia liecivá aura a pri 33 % HP sa
@@ -113,7 +113,7 @@ export const ENEMY_TYPES = {
     stunRadius: 5,
     stunDuration: 2.5,
     healRadius: 3.5,
-    healPctPerSec: 0.04,
+    healPctPerSec: 0.025,
     splitAtPct: 0.33,
     splitType: 'boss_kukucka_polovica',
     splitCount: 2,
