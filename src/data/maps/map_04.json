@@ -71,7 +71,7 @@
   ],
   "description": "Level 4: rovnaky teren, nepriatelia x3.8 HP (hpMultiplier, HP skalovanie od 1. vlny levelu), boss Kukuckovy kolos Imperator (liečivá aura, 5 faz omracenia, pri 33 % sa rozdeli na 2 polovice).",
   "hpMultiplier": 3.8,
-  "bossHpMultiplier": 0.4,
+  "bossHpMultiplier": 0.45,
   "waves": [
     {
       "index": 1,
