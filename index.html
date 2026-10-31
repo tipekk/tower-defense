@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="sk" class="menu-open">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Bastion Grid — Diorama Preview</title>
+<link rel="icon" type="image/png" href="assets/ui/favicon.png" />
+<style>
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+  }
+
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #4e95d9, #d9f2ff);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    touch-action: none;           /* no page pinch-zoom / scroll anywhere */
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---- Layout architecture (task G) ---------------------------------
+     #layout is a flex column: #sceneArea (the 3D canvas) takes all the
+     space that's left once #ui -- acting as a REAL bottom HUD bar, not
+     an overlay -- claims its own height. That's what lets the canvas
+     fill "almost full height above the bottom bar" on mobile instead of
+     being squeezed by a fixed/near-square container.
+     At desktop widths #sidePanel appears beside #layout (slot for the
+     wave-preview panel, task J) and #ui switches back to a thin
+     floating overlay so it doesn't eat into the now much wider canvas. */
+  body { display: flex; height: 100%; width: 100%; }
+  #layout {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; flex-direction: column;
+    height: 100%; min-width: 320px;
+    position: relative;
+  }
+  #sceneArea { order: 1; flex: 1 1 auto; min-height: 0; position: relative; }
+  #sceneArea canvas { display: block; touch-action: none; }
+
+  /* ---- HUD content (task H): main thumb-reachable actions (build /
+     start wave / speed / lives) are the primary row and stay closest to
+     full size; the G-era dev scaffold (theme/rotate toggle, control
+     hint) is still here for testing but demoted to a smaller, muted
+     second row so it never competes with real actions for thumb space. */
+  #ui {
+    order: 2; /* below #sceneArea in the flex column = a real bottom bar on mobile */
+    position: relative; z-index: 10;
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+    background: rgba(20, 20, 24, 0.55); backdrop-filter: blur(4px);
+    padding: 10px 12px calc(10px + var(--safe-bottom));
+    padding-left: calc(12px + var(--safe-left)); padding-right: calc(12px + var(--safe-right));
+    color: #f4f4f4; font-size: 13px;
+  }
+  .hud-actions {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
+    width: 100%;
+  }
+  .hud-stat {
+    display: flex; align-items: center; gap: 6px; box-sizing: border-box;
+    min-width: 44px; min-height: 44px;
+    padding: 6px 12px; border-radius: 10px;
+    background: rgba(255, 107, 107, 0.18); border: 1px solid rgba(255, 107, 107, 0.6);
+    color: #ffd7d7; font-weight: 700; font-size: 14px;
+  }
+  .hud-stat-icon { font-size: 16px; }
+  .hud-btn {
+    cursor: pointer; border: none; border-radius: 12px; box-sizing: border-box;
+    min-width: 64px; min-height: 48px;
+    padding: 6px 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: #1a1a1a; font-weight: 700; font-size: 11px; letter-spacing: 0.01em;
+  }
+  .hud-btn:active { transform: scale(0.94); }
+  .hud-btn-icon { font-size: 18px; line-height: 1; }
+  .hud-btn-build { background: #ffb627; }
+  .hud-btn-wave { background: #9ef01a; }
+  .hud-btn-speed { background: #8fd3f4; }
+  .hud-btn-menu { min-width: 48px; padding: 6px 10px; background: rgba(255, 255, 255, 0.14); color: #f4f4f4; }
+  .hud-btn-menu svg { width: 20px; height: 20px; display: block; }
+  .game-confirm {
+    position: fixed; inset: 0; z-index: 900; display: grid; place-items: center;
+    padding: 16px; background: rgba(8, 10, 16, 0.55);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  .game-confirm[hidden] { display: none; }
+  .game-confirm-card {
+    width: min(360px, 100%); box-sizing: border-box; padding: 20px;
+    border-radius: 16px; background: rgba(24, 26, 34, 0.96); color: #f4f4f4;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .game-confirm-card h3 { margin: 0 0 6px; font-size: 18px; }
+  .game-confirm-card p { margin: 0 0 16px; font-size: 14px; line-height: 1.4; opacity: 0.75; }
+  .game-confirm-actions { display: flex; gap: 10px; }
+  .game-confirm-actions button {
+    flex: 1 1 0; min-height: 48px; border: 0; border-radius: 11px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+    background: rgba(255, 255, 255, 0.12); color: #f4f4f4;
+  }
+  .game-confirm-actions button.is-primary { background: #ffb627; color: #2b2d42; }
+  .hud-dev {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+    width: 100%; opacity: 0.7;
+  }
+  .hud-dev-btn {
+    cursor: pointer; border: none; border-radius: 8px; padding: 8px 10px; box-sizing: border-box;
+    min-width: 44px; min-height: 44px;
+    background: rgba(255, 255, 255, 0.14); color: #f4f4f4; font-weight: 600; font-size: 11px;
+  }
+  .hud-dev-btn.alt { background: rgba(158, 240, 26, 0.25); }
+  #hint { opacity: 0.85; font-size: 11px; }
+  .hud-toast {
+    position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 6px);
+    background: rgba(20, 20, 24, 0.92); color: #f4f4f4; border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .hud-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (max-width: 480px) {
+    #hint { display: none; } /* keep the HUD from wrapping into unreadable rows on small phones */
+    .hud-btn-label { display: none; } /* icon-only on the smallest phones, still >=44px */
+    .hud-btn { min-width: 48px; padding: 8px; }
+  }
+
+  /* Mobile/tablet landscape: same bottom-bar approach, but thin -- the
+     canvas is already wide, it just needs a slim strip, not a tall one.
+     Vertical room is scarce here, so the dev row (not needed to play)
+     is dropped and only the real action row stays. */
+  /* Mobile/tablet landscape (task S): the bottom-bar approach wasted
+     most of an already-short landscape viewport height on a HUD strip,
+     leaving the grid looking tiny and squeezed into a letterboxed middle
+     band. Moving the HUD to a narrow RIGHT-SIDE column instead gives the
+     canvas the full viewport height and all-but-~100px of the width, so
+     computeFitViewSize() (IsoCamera.js) frames a visibly bigger grid.
+     Not the same as the >=1024px desktop #sidePanel treatment below --
+     this is a slim action rail, not a 280px info panel, and still only
+     holds the core play actions (dev row stays dropped as before). */
+  @media (orientation: landscape) and (max-width: 1023px) {
+    #layout { flex-direction: row; }
+    #sceneArea { order: 1; }
+    #ui {
+      order: 2; flex: 0 0 108px; width: 108px; box-sizing: border-box;
+      flex-direction: column; justify-content: flex-start;
+      height: 100%; max-height: 100%; overflow-y: auto;
+      gap: 8px; font-size: 12px;
+      padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) calc(8px + var(--safe-bottom)) 8px;
+    }
+    .hud-actions { flex-direction: column; flex-wrap: nowrap; gap: 8px; width: 100%; }
+    .hud-dev { display: none; }
+    .hud-stat { width: 100%; justify-content: center; min-height: 44px; }
+    .hud-btn { width: 100%; min-height: 48px; }
+  }
+
+  /* Desktop/NTB: #ui goes back to a floating top overlay (it no longer
+     needs to reserve layout height) and #sidePanel gets real space next
+     to the canvas -- slot for task J's wave-preview panel, placeholder
+     content for now. */
+  #sidePanel { display: none; }
+  @media (min-width: 1024px) {
+    #ui {
+      order: 0; position: absolute;
+      top: calc(10px + var(--safe-top)); left: calc(10px + var(--safe-left)); right: calc(10px + var(--safe-right));
+      background: rgba(20, 20, 24, 0.45); padding: 8px 12px; border-radius: 10px;
+      flex-direction: row; justify-content: space-between; gap: 14px;
+    }
+    #ui { right: auto; background: rgba(20, 22, 34, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+    .hud-actions { width: auto; justify-content: flex-start; flex-wrap: nowrap; }
+    .hud-dev { width: auto; opacity: 0.85; }
+    .hud-dev #hint { display: none; }
+    #sidePanel {
+      display: flex; flex-direction: column; gap: 10px;
+      flex: 0 0 280px; box-sizing: border-box; padding: 18px;
+      background: rgba(20, 20, 24, 0.92); color: #f4f4f4;
+      border-left: 2px solid rgba(255, 255, 255, 0.08);
+      overflow-y: auto;
+    }
+    #sidePanel h2 { margin: 0; font-size: 15px; }
+    #sidePanel .side-placeholder {
+      border: 1px dashed rgba(255, 255, 255, 0.25); border-radius: 10px;
+      padding: 14px; font-size: 12px; opacity: 0.7; line-height: 1.5;
+    }
+    .side-section { display: flex; flex-direction: column; gap: 8px; }
+    .side-section h3 {
+      margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6;
+    }
+    .side-note { font-size: 11px; opacity: 0.55; line-height: 1.4; }
+    .wave-list { display: flex; flex-direction: column; gap: 6px; }
+    .wave-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .wave-item img { width: 28px; height: 28px; object-fit: contain; flex: none; }
+    .wave-item .wave-count { margin-left: auto; opacity: 0.8; font-variant-numeric: tabular-nums; }
+    .prep-cards { display: flex; flex-direction: column; gap: 8px; }
+    .prep-card {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 44px;
+      border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.03); color: inherit; font: inherit; font-size: 13px;
+      opacity: 0.55; cursor: not-allowed; text-align: left;
+    }
+    .shortcut-list { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+    .shortcut-row { display: flex; justify-content: space-between; gap: 10px; }
+    .shortcut-row kbd {
+      background: rgba(255, 255, 255, 0.12); border-radius: 4px; padding: 1px 6px; font-family: inherit;
+    }
+    .shortcut-row.is-pending { opacity: 0.4; }
+  }
+
+  #errbox {
+    display:none;position:absolute;
+    top: calc(14px + var(--safe-top)); right: calc(14px + var(--safe-right));
+    max-width:46ch;z-index:20;
+    background:#3a0f12;color:#ffd7d7;border:1px solid #ff6b6b;border-radius:8px;
+    padding:10px 14px;font:12px/1.4 monospace;white-space:pre-wrap;
+  }
+
+  .hud-stat img.hud-stat-icon-img { width: 18px; height: 18px; object-fit: contain; }
+  .hud-stat-lives { position: relative; }
+  .hud-lives-flash {
+    position: absolute; top: -8px; right: -8px; width: 20px; height: 20px;
+    opacity: 0; transform: scale(0.6); transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+  }
+  .hud-lives-flash.show { opacity: 1; transform: scale(1.15); }
+  .hud-stat-gold {
+    background: rgba(255, 214, 10, 0.18); border: 1px solid rgba(255, 214, 10, 0.6); color: #ffe88a;
+  }
+  .hud-stat-wave {
+    background: rgba(143, 211, 244, 0.18); border: 1px solid rgba(143, 211, 244, 0.6); color: #cdeeff;
+    font-size: 12px;
+  }
+  .hud-btn img.hud-btn-icon-img { width: 20px; height: 20px; object-fit: contain; }
+  .hud-dev-btn img { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; }
+  .hud-dev-btn.is-paused { background: rgba(255, 107, 107, 0.35); }
+
+  /* ---- Radial menu (tile build / tower actions) --------------------- */
+  .radial-menu-backdrop {
+    position: absolute; inset: 0; z-index: 29; background: transparent;
+  }
+  .radial-menu {
+    position: absolute; z-index: 30;
+    width: 0; height: 0; /* children are positioned via translate() from this anchor point */
+  }
+  .radial-menu-item {
+    position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px;
+    border-radius: 50%; border: 3px solid #ffb627;
+    background: radial-gradient(circle at 35% 30%, #4a4e69, #22243a 75%); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer; padding: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.15);
+    animation: radialPop 0.18s ease-out both;
+    transition: transform 0.08s;
+  }
+  .radial-menu-item:hover { transform: scale(1.08); }
+  .radial-menu-item:active { transform: scale(0.92); }
+  .radial-menu-item.is-disabled { border-color: #6b6f80; filter: grayscale(0.85) brightness(0.8); }
+  .radial-menu-icon { display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .radial-menu-icon img { width: 40px !important; height: 40px !important; }
+  .radial-menu-price {
+    position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%);
+    background: #ffb627; color: #2b2d42; font: 800 12px/1 system-ui, sans-serif;
+    padding: 3px 7px 3px 18px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    background-image: radial-gradient(circle at 9px 50%, #fff3b0 0 3px, #c98a00 3.5px 5px, transparent 5.5px);
+  }
+  .radial-menu-price.bad { background-color: #e4572e; color: #fff; }
+  .radial-menu-name {
+    position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
+    font: 700 11px/1 system-ui, sans-serif; color: #fff; white-space: nowrap; pointer-events: none;
+    text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  }
+  @keyframes radialPop { from { opacity: 0; scale: 0.4; } to { opacity: 1; scale: 1; } }
+  .radial-menu-center {
+    position: absolute; left: -22px; top: -22px;
+    width: 44px; height: 44px;
+    border-radius: 50%; border: 2px solid rgba(255,255,255,0.6);
+    background: rgba(43, 45, 66, 0.55); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .radial-menu-center::after { content: '\2715'; font-size: 16px; }
+
+  /* Mobile/tablet portrait (task N): same slim-bar idea as the existing
+     landscape rule above -- the dev row and extra padding aren't worth
+     the canvas height they cost here either. This applies whether or
+     not the rotate overlay below is showing/dismissed, so a player who
+     stays in portrait still gets some of the room back. */
+  @media (orientation: portrait) and (max-width: 899px) {
+    #ui { padding-top: 6px; padding-bottom: calc(6px + var(--safe-bottom)); gap: 4px; }
+    .hud-dev { display: none; }
+    .hud-actions { gap: 6px; }
+    .hud-btn { min-height: 44px; padding: 5px 10px; }
+  }
+
+  /* ---- Rotate-to-landscape nudge (task N) ---------------------------
+     Widescreen phones in portrait waste most of the canvas height on
+     the HUD bar + landing cards. We try screen.orientation.lock first;
+     when it's unsupported (iOS Safari always; most other browsers
+     outside a fullscreen/installed-PWA context) this overlay asks the
+     player to rotate by hand instead. It's dismissible so a player who
+     prefers portrait isn't locked out -- the slim-HUD rule above still
+     gives some of the canvas back either way. */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    background: rgba(10, 10, 14, 0.96); color: #f4f4f4;
+    padding: 24px; box-sizing: border-box;
+  }
+  .rotate-overlay.show { display: flex; }
+  .rotate-overlay-icon { animation: rotateHint 1.8s ease-in-out infinite; }
+  @keyframes rotateHint { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } }
+  .rotate-overlay p { margin: 16px 0 0; font-size: 16px; font-weight: 700; max-width: 26ch; }
+  .rotate-overlay-sub { font-size: 12px; font-weight: 400; opacity: 0.7; margin-top: 6px; }
+  .rotate-overlay-dismiss {
+    margin-top: 22px; background: none; border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #f4f4f4; border-radius: 10px; padding: 10px 16px; font-size: 13px;
+    min-height: 44px; cursor: pointer;
+  }
+</style>
+<link rel="stylesheet" href="./src/ui/menu.css" />
+<link rel="stylesheet" href="./src/ui/menu-basic.css" />
+<link rel="stylesheet" href="./src/ui/menu-zombie.css" />
+<link rel="stylesheet" href="./src/ui/layouts/dock.css" id="layoutCss" disabled />
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+  <div id="menu" data-mode="basic" data-screen="home" data-layout="default">
+    <div class="menu-bg" aria-hidden="true"></div>
+    <div class="menu-stage" id="menuStage" aria-hidden="true"></div>
+    <header class="menu-top">
+      <div class="menu-brand"><span class="menu-logo">Bastion Grid</span><span class="menu-tagline">Tower defense z mosadze a smaltu</span></div>
+      <div class="mode-switch" role="radiogroup" aria-label="Mód">
+        <span class="mode-thumb" aria-hidden="true"></span>
+        <button type="button" class="mode-opt" data-mode="basic" role="radio" aria-checked="true">Basic</button>
+        <button type="button" class="mode-opt" data-mode="zombie" role="radio" aria-checked="false">Zombie</button>
+      </div>
+      <div class="menu-acct">
+        <div class="menu-stats" aria-label="Meny"><span class="stat" title="Hviezdy"><b data-stat="stars">0</b> ★</span><span class="stat" title="Súkolie"><b data-stat="gears">0</b> ⚙</span></div>
+        <button type="button" class="menu-account" data-open="login"><span class="menu-avatar"></span><span class="menu-account-name">Prihlásiť</span></button>
+      </div>
+    </header>
+    <main class="menu-main">
+      <section class="menu-screen menu-home" data-screen="home">
+        <p class="menu-kicker">Denná dielňa</p>
+        <h1 class="menu-title">Mosadzná légia</h1>
+        <p class="menu-lead">Hodinárove hračky pochodujú na tvoj bastión. Postav veže, nechaj pružiny dobehnúť a ubráň dielňu.</p>
+        <div class="menu-cta"><button type="button" class="btn-primary" id="menuPlay">Hrať</button><button type="button" class="btn-ghost" data-open="daily">Denná výzva</button></div>
+        <nav class="menu-nav" aria-label="Menu">
+          <button type="button" class="menu-item" data-open="difficulty" aria-expanded="false"><span class="menu-item-label">Obtiažnosť</span><span class="menu-item-value">Normálna</span></button>
+          <button type="button" class="menu-item" data-open="leaderboard" aria-expanded="false"><span class="menu-item-label">Rebríček</span><span class="menu-item-value">#—</span></button>
+          <button type="button" class="menu-item" data-open="settings" aria-expanded="false"><span class="menu-item-label">Nastavenia</span><span class="menu-item-value">Zvuk, pohyb</span></button>
+          <button type="button" class="menu-item is-locked" disabled><span class="menu-item-label">Vylepšenia</span><span class="menu-item-value">čoskoro</span></button>
+        </nav>
+      </section>
+      <section class="menu-screen menu-panel" data-screen="leaderboard" aria-label="Rebríček">
+        <header class="panel-head"><button type="button" class="panel-back" aria-label="Späť"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2 class="panel-title">Rebríček</h2></header>
+        <div class="tabs" role="tablist"><button type="button" class="tab is-active" role="tab" aria-selected="true" data-tab="day">Dnes</button><button type="button" class="tab" role="tab" aria-selected="false" data-tab="week">Týždeň</button><button type="button" class="tab" role="tab" aria-selected="false" data-tab="campaign">Kampaň</button></div>
+        <ol class="lb-list"></ol>
+      </section>
+      <section class="menu-screen menu-panel" data-screen="difficulty" aria-label="Obtiažnosť">
+        <header class="panel-head"><button type="button" class="panel-back" aria-label="Späť"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2 class="panel-title">Obtiažnosť</h2></header>
+        <div class="choice-list" role="radiogroup" aria-label="Obtiažnosť">
+          <button type="button" class="choice" role="radio" aria-checked="false" data-difficulty="calm"><span class="choice-title">Pokojná</span><span class="choice-desc">Viac zlata a životov. Na spoznanie mapy.</span></button>
+          <button type="button" class="choice is-selected" role="radio" aria-checked="true" data-difficulty="normal"><span class="choice-title">Normálna</span><span class="choice-desc">Tak, ako to hodinár navrhol.</span></button>
+          <button type="button" class="choice is-locked" role="radio" aria-checked="false" aria-disabled="true" data-difficulty="brutal" data-lock="2 ★"><span class="choice-title">Brutálna</span><span class="choice-desc">Žiadna chyba sa neodpúšťa. Odomkneš za 2 ★.</span></button>
+        </div>
+      </section>
+      <section class="menu-screen menu-panel" data-screen="login" aria-label="Prezývka">
+        <header class="panel-head"><button type="button" class="panel-back" aria-label="Späť"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2 class="panel-title">Tvoja prezývka</h2></header>
+        <form class="form" novalidate>
+          <label class="field"><span class="field-label">Prezývka</span><input class="field-input" name="nickname" type="text" maxlength="20" autocomplete="nickname" autocapitalize="off" spellcheck="false" placeholder="napr. Kľúčník" enterkeyhint="done"></label>
+          <span class="field-count" aria-live="polite">0/20</span>
+          <button type="submit" class="btn-primary">Uložiť prezývku</button>
+          <button type="button" class="btn-ghost" data-act="guest">Hrať ako hosť</button>
+          <p class="form-note">Bez hesla. Prezývka sa ukladá len v tomto zariadení a zobrazí sa v rebríčku.</p>
+        </form>
+      </section>
+      <section class="menu-screen menu-panel" data-screen="settings" aria-label="Nastavenia">
+        <header class="panel-head"><button type="button" class="panel-back" aria-label="Späť"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2 class="panel-title">Nastavenia</h2></header>
+        <div class="setting-list">
+          <label class="setting"><span class="setting-label">Hudba</span><span class="setting-value" data-for="music">70</span><input type="range" class="range" name="music" min="0" max="100" step="5"></label>
+          <label class="setting"><span class="setting-label">Zvukové efekty</span><span class="setting-value" data-for="sfx">80</span><input type="range" class="range" name="sfx" min="0" max="100" step="5"></label>
+          <label class="setting"><span class="setting-label">Vibrácie</span><input type="checkbox" class="toggle" name="haptics"></label>
+          <label class="setting"><span class="setting-label">Obmedziť pohyb</span><input type="checkbox" class="toggle" name="reduceMotion"></label>
+        </div>
+      </section>
+    </main>
+    <footer class="menu-foot"><span class="menu-version">v0.4</span><span class="menu-hint"><kbd>Enter</kbd> spustí hru</span></footer>
+    <div class="menu-dialog" role="dialog" aria-modal="true" aria-labelledby="menuDialogTitle" hidden>
+      <div class="dialog-card"><h3 class="dialog-title" id="menuDialogTitle">Toto nie je ľahký mód.</h3><p class="dialog-text">Nepriatelia sa liečia, delia a vstávajú z mŕtvych. Huba prerastá cez všetko, čo nespáliš. Ak si Bastion Grid ešte nehral, začni v Basic.</p>
+        <label class="dialog-check"><input type="checkbox" class="toggle"> Už nezobrazovať</label>
+        <div class="dialog-actions"><button type="button" class="btn-ghost" data-act="back">Späť na Basic</button><button type="button" class="btn-primary" data-act="ok">Rozumiem, do toho</button></div></div>
+    </div>
+  </div>
+  <div id="layout">
+    <div id="sceneArea"></div>
+    <div id="ui">
+      <div class="hud-toast" id="hudToast"></div>
+      <div class="hud-actions">
+        <button id="menuBtn" class="hud-btn hud-btn-menu" type="button" title="Menu" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="hud-stat hud-stat-lives" id="hudLives" title="Zivoty zakladne (GDD 5.2)">
+          <img class="hud-stat-icon-img" src="assets/ui/hud-lives.png" alt="" />
+          <span id="livesValue">20/20</span>
+          <img class="hud-lives-flash" id="hudLivesFlash" src="assets/ui/hud-zasah.png" alt="" title="Zasah zakladne" />
+        </div>
+        <div class="hud-stat hud-stat-gold" id="hudGold" title="Zlato">
+          <img class="hud-stat-icon-img" src="assets/ui/hud-gold.png" alt="" />
+          <span id="goldValue">150</span>
+        </div>
+        <div class="hud-stat hud-stat-wave" id="hudWave" title="Vlna">
+          <span>Vlna <span id="waveValue">0/15</span></span>
+        </div>
+        <button id="buildBtn" class="hud-btn hud-btn-build" type="button" title="Stavat vezu">
+          <span class="hud-btn-icon">⚒</span><span class="hud-btn-label">Stavat</span>
+        </button>
+        <button id="startWaveBtn" class="hud-btn hud-btn-wave" type="button" title="Spustit vlnu">
+          <span class="hud-btn-icon">▶</span><span class="hud-btn-label">Vlna</span>
+        </button>
+        <button id="speedBtn" class="hud-btn hud-btn-speed" type="button" title="Rychlost hry">
+          <img class="hud-btn-icon-img" src="assets/ui/hud-speed.png" alt="" /><span class="hud-btn-label" id="speedLabel">1x</span>
+        </button>
+      </div>
+      <div class="hud-dev">
+        <button id="pauseBtn" class="hud-dev-btn" type="button" title="Pauza"><img src="assets/ui/hud-pause.png" alt="" /> Pauza</button>
+        <button id="rotateBtn" class="hud-dev-btn alt" type="button">Otocit (Q/E)</button>
+        <span id="hint">Q/E=otocenie, kolieska/pinch=zoom, tahanie/WASD=posun</span>
+      </div>
+    </div>
+  </div>
+  <div id="sidePanel">
+    <div class="side-section">
+      <h2>Náhľad vlny</h2>
+      <div class="side-note">Vlna 4 · mock-up — Waves systém zatiaľ nenapojený na render.</div>
+      <div class="wave-list">
+        <div class="wave-item"><img src="assets/ui/enemy-cvakac.png" alt=""><span>Cvakáč</span><span class="wave-count">×6</span></div>
+        <div class="wave-item"><img src="assets/ui/enemy-vrtiak.png" alt=""><span>Vrtiak</span><span class="wave-count">×3</span></div>
+        <div class="wave-item"><img src="assets/ui/enemy-mosadzna-vazka.png" alt=""><span>Mosadzná vážka</span><span class="wave-count">×2</span></div>
+        <div class="wave-item"><img src="assets/ui/enemy-kotlar.png" alt=""><span>Kotlár</span><span class="wave-count">×1</span></div>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>Pripravuje sa</h3>
+      <div class="prep-cards">
+        <button class="prep-card" type="button" disabled title="Pripravuje sa">🗺️ Mapa sveta</button>
+        <button class="prep-card" type="button" disabled title="Pripravuje sa">🌳 Strom vylepšení</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <h3>Klávesové skratky</h3>
+      <div class="shortcut-list">
+        <div class="shortcut-row"><span>Postaviť vežu</span><kbd>klik</kbd></div>
+        <div class="shortcut-row is-pending"><span>Rýchla voľba veže</span><kbd>1–4</kbd></div>
+        <div class="shortcut-row"><span>Zrušiť výber</span><kbd>Esc / PKM</kbd></div>
+        <div class="shortcut-row"><span>Spustiť vlnu</span><kbd>Space</kbd></div>
+        <div class="shortcut-row"><span>Rýchlosť</span><kbd>F</kbd></div>
+        <div class="shortcut-row"><span>Otočiť kameru</span><kbd>Q / E</kbd></div>
+        <div class="shortcut-row"><span>Zoom</span><kbd>koliesko</kbd></div>
+        <div class="shortcut-row"><span>Posun kamery</span><kbd>WASD</kbd></div>
+        <div class="shortcut-row is-pending"><span>Zásah</span><kbd>R</kbd></div>
+        <div class="shortcut-row"><span>Pauza</span><kbd>P / Esc</kbd></div>
+      </div>
+      <div class="side-note">Stlmené skratky čakajú na napojenie hernej logiky.</div>
+    </div>
+  </div>
+  <div id="gameConfirm" class="game-confirm" role="dialog" aria-modal="true" aria-labelledby="gameConfirmTitle" hidden>
+    <div class="game-confirm-card">
+      <h3 id="gameConfirmTitle">Odísť do menu?</h3>
+      <p>Rozohratá hra sa neuloží.</p>
+      <div class="game-confirm-actions">
+        <button type="button" data-act="stay">Hrať ďalej</button>
+        <button type="button" class="is-primary" data-act="leave">Do menu</button>
+      </div>
+    </div>
+  </div>
+  <div id="levelComplete" class="game-confirm" role="dialog" aria-modal="true" aria-labelledby="levelCompleteTitle" hidden>
+    <div class="game-confirm-card">
+      <h3 id="levelCompleteTitle">Level dokončený!</h3>
+      <p id="levelCompleteText">Hodinár naťahuje ťažšie súkolie...</p>
+      <div class="game-confirm-actions">
+        <button type="button" class="is-primary" id="levelCompleteBtn" data-act="next">Ďalší level</button>
+      </div>
+    </div>
+  </div>
+  <div id="errbox"></div>
+  <div id="rotateOverlay" class="rotate-overlay">
+    <svg class="rotate-overlay-icon" viewBox="0 0 100 100" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="30" y="10" width="40" height="70" rx="6" stroke="#fff" stroke-width="4" />
+      <circle cx="50" cy="72" r="2.5" fill="#fff" />
+      <path d="M80 42a30 30 0 1 1 -8 -19" stroke="#ffb627" stroke-width="5" fill="none" stroke-linecap="round" />
+      <path d="M80 42l9 -5 l1 12 z" fill="#ffb627" />
+    </svg>
+    <p>Otoč telefón na šírku</p>
+    <p class="rotate-overlay-sub">Hra sa hrá lepšie v landscape režime</p>
+    <button type="button" class="rotate-overlay-dismiss" id="rotateOverlayDismiss">Hrať v portraite</button>
+  </div>
+  <script>
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('errbox');
+      box.style.display = 'block';
+      box.textContent = 'JS error: ' + (e.message || e.error) + (e.filename ? ('\n' + e.filename + ':' + e.lineno) : '');
+    });
+  </script>
+  <script>
+  (function () {
+    try {
+      var params = new URLSearchParams(location.search);
+      var fromUrl = params.get('layout');
+      if (fromUrl) localStorage.setItem('bastionGrid.menu.layout', fromUrl);
+      var layout = fromUrl || localStorage.getItem('bastionGrid.menu.layout') || 'default';
+      var known = ['default', 'dock', 'rail', 'hero'];
+      if (known.indexOf(layout) === -1) layout = 'default';
+      var menuEl = document.getElementById('menu');
+      if (menuEl) menuEl.setAttribute('data-layout', layout);
+      var link = document.getElementById('layoutCss');
+      if (link) {
+        if (layout === 'default') {
+          link.disabled = true;
+        } else {
+          link.href = './src/ui/layouts/' + layout + '.css';
+          link.disabled = false;
+        }
+      }
+    } catch (e) { /* ignore */ }
+  })();
+  </script>
+  <script type="module" src="./src/render/main.js"></script>
+  <script type="module">
+    function wire() {
+      if (!window.__bastionGrid) { requestAnimationFrame(wire); return; }
+      document.getElementById('rotateBtn').addEventListener('click', () => {
+        window.__bastionGrid.rotateCamera();
+      });
+
+      // ---- In-game "Menu" button: confirm, then back to the main menu.
+      // The mode can't change mid-game; a reload returns to the menu, which
+      // remembers the last mode/difficulty/nickname in localStorage.
+      const confirmEl = document.getElementById('gameConfirm');
+      let resumeAfterConfirm = false;
+      function openConfirm() {
+        if (!confirmEl.hidden) return;
+        resumeAfterConfirm = window.__bastionGrid.togglePause();      // true = we just paused it
+        if (!resumeAfterConfirm) window.__bastionGrid.togglePause();  // it was already paused: keep it so
+        confirmEl.hidden = false;
+        confirmEl.querySelector('[data-act="stay"]').focus();
+      }
+      function closeConfirm() {
+        confirmEl.hidden = true;
+        if (resumeAfterConfirm) window.__bastionGrid.togglePause();
+        resumeAfterConfirm = false;
+      }
+      document.getElementById('menuBtn').addEventListener('click', openConfirm);
+      confirmEl.addEventListener('click', (e) => {
+        const act = e.target.closest('[data-act]')?.dataset.act;
+        if (act === 'leave') location.reload();
+        else if (act === 'stay' || e.target === confirmEl) closeConfirm();
+      });
+      window.addEventListener('keydown', (e) => {
+        if (confirmEl.hidden) return;
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeConfirm(); }
+      }, true);
+
+      // ---- Main HUD actions (task H) --------------------------------
+      // Economy/Game logic isn't wired into the render layer yet (see
+      // project notes), so these show a real, finished-looking HUD with
+      // placeholder feedback; only "speed" has a visible effect today
+      // (it scales the diorama's own animation clock).
+      const hudToast = document.getElementById('hudToast');
+      let toastTimer = null;
+      function showHudToast(msg) {
+        if (!hudToast) return;
+        hudToast.textContent = msg;
+        hudToast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => hudToast.classList.remove('show'), 1600);
+      }
+      document.getElementById('buildBtn').addEventListener('click', () => {
+        showHudToast('Ťukni na voľnú dlaždicu a vyber vežu');
+      });
+      document.getElementById('startWaveBtn').addEventListener('click', () => {
+        window.__bastionGrid.startNextWave();
+      });
+      const SPEED_STEPS = [1, 2, 3];
+      let speedIdx = 0;
+      document.getElementById('speedBtn').addEventListener('click', () => {
+        speedIdx = (speedIdx + 1) % SPEED_STEPS.length;
+        const mult = SPEED_STEPS[speedIdx];
+        window.__bastionGrid.setSpeed(mult);
+        document.getElementById('speedLabel').textContent = mult + 'x';
+      });
+      document.getElementById('pauseBtn').addEventListener('click', (e) => {
+        const isPaused = window.__bastionGrid.togglePause();
+        e.currentTarget.classList.toggle('is-paused', isPaused);
+        showHudToast(isPaused ? 'Pauza' : 'Pokracujeme');
+      });
+
+      // ---- Level progression (GDD 5.4/campaign task): main.js dispatches
+      // this once a level's waves are all sent AND the field is clear --
+      // either "next level unlocked" (final:false) or the real campaign
+      // win (final:true, last level's boss down). Same modal, two texts.
+      const levelCompleteEl = document.getElementById('levelComplete');
+      const lcTitle = document.getElementById('levelCompleteTitle');
+      const lcText = document.getElementById('levelCompleteText');
+      const lcBtn = document.getElementById('levelCompleteBtn');
+      window.addEventListener('bastiongrid:levelcomplete', (e) => {
+        const { final, level, totalLevels } = e.detail || {};
+        if (final) {
+          lcTitle.textContent = `Level ${level} dokončený — Bašta ubránená!`;
+          lcText.textContent = 'Kukučkový kolos Major padol. Hodinárova légia je zastavená. Ďakujeme za hru!';
+          lcBtn.textContent = 'Späť do menu';
+          lcBtn.dataset.act = 'menu';
+        } else {
+          lcTitle.textContent = `Level ${level} dokončený!`;
+          lcText.textContent = `Hodinár naťahuje ťažšie súkolie. Level ${level + 1} z ${totalLevels} je odomknutý.`;
+          lcBtn.textContent = 'Ďalší level';
+          lcBtn.dataset.act = 'next';
+        }
+        levelCompleteEl.hidden = false;
+      });
+      lcBtn.addEventListener('click', () => {
+        const act = lcBtn.dataset.act;
+        levelCompleteEl.hidden = true;
+        if (act === 'next') window.__bastionGrid.nextLevel();
+        else location.reload();
+      });
+    }
+    wire();
+  </script>
+  <script type="module">
+    // ---- Main menu (agent A): shown before the game. The game scene boots
+    // underneath (paused) so "Hrať" is instant; the theme is applied once,
+    // on Play, and never changes during a run.
+    function whenGrid(cb) { if (window.__bastionGrid) cb(window.__bastionGrid); else requestAnimationFrame(() => whenGrid(cb)); }
+    let pausedByMenu = false;
+    whenGrid((g) => {
+      if (document.documentElement.classList.contains('menu-open') && !pausedByMenu) { g.togglePause(); pausedByMenu = true; }
+    });
+    function startGame(state) {
+      whenGrid((g) => {
+        g.setTheme(state && state.mode === 'zombie' ? 'zombie' : 'basic');
+        if (pausedByMenu) { g.togglePause(); pausedByMenu = false; }
+      });
+    }
+    import('./src/ui/Menu.js')
+      .then((m) => m.initMenu({ onPlay: startGame }))
+      .catch((err) => {
+        console.error('[menu] failed to start, launching the game directly', err);
+        const el = document.getElementById('menu');
+        if (el) el.style.display = 'none';
+        document.documentElement.classList.remove('menu-open');
+        startGame({ mode: 'basic' });
+      });
+  </script>
+  <script>
+    // ---- Rotate-to-landscape nudge (task N) ------------------------
+    // Independent of window.__bastionGrid / main.js on purpose: it only
+    // touches its own overlay + the HUD's CSS classes via media queries,
+    // so it can't break game wiring if it fails for any reason.
+    (function () {
+      var overlay = document.getElementById('rotateOverlay');
+      var dismissBtn = document.getElementById('rotateOverlayDismiss');
+      var dismissed = false;
+
+      function isNarrowPortrait() {
+        var w = window.innerWidth, h = window.innerHeight;
+        // Phone-shaped portrait only. Task P fix: the original thresholds
+        // (ratio > 1.3, width < 900) were WRONG despite the old comment's
+        // claim -- a classic 768x1024 tablet portrait has ratio 1.333 (ABOVE
+        // 1.3) and width 768 (BELOW 900), so it incorrectly matched and the
+        // rotate-landscape overlay blocked the game on tablets. Real phone
+        // portraits run ratio >=1.6 (iPhone SE 375x667=1.78, iPhone 14
+        // 390x844=2.16, common Android 360x800=2.22); real tablet portraits
+        // run ratio ~1.3-1.4 (768x1024=1.33, 834x1194=1.43). Verified via
+        // Playwright at 375x667/390x844/360x800 (should show) and
+        // 768x1024/667x375 landscape (should NOT show).
+        return h > w && (h / w) > 1.5 && w < 700;
+      }
+
+      function refreshOverlay() {
+        if (!overlay) return;
+        var narrow = isNarrowPortrait();
+        if (!narrow) dismissed = false; // leaving portrait resets the dismissal for next time
+        overlay.classList.toggle('show', narrow && !dismissed);
+      }
+
+      function tryLockLandscape() {
+        if (!isNarrowPortrait()) return;
+        if (!(screen.orientation && screen.orientation.lock)) return; // no API at all (iOS Safari)
+        screen.orientation.lock('landscape').catch(function () {
+          // Expected almost everywhere outside a fullscreen/installed-PWA
+          // context, and always on iOS Safari -- the overlay is the fallback.
+        });
+      }
+
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', function () {
+          dismissed = true;
+          refreshOverlay();
+        });
+      }
+
+      window.addEventListener('resize', refreshOverlay);
+      window.addEventListener('orientationchange', function () {
+        refreshOverlay();
+        tryLockLandscape();
+      });
+      // screen.orientation.lock() generally requires a user gesture; the
+      // very first tap/click anywhere on the page doubles as that gesture.
+      window.addEventListener('pointerdown', function onFirstPointer() {
+        window.removeEventListener('pointerdown', onFirstPointer);
+        tryLockLandscape();
+      });
+
+      refreshOverlay();
+      tryLockLandscape();
+    })();
+  </script>
+</body>
+</html>
