@@ -81,8 +81,8 @@
   .hud-btn-build { background: #ffb627; }
   .hud-btn-wave { background: #9ef01a; }
   .hud-btn-speed { background: #8fd3f4; }
-  .hud-btn-pause { background: rgba(255, 255, 255, 0.14); color: #f4f4f4; }
-  .hud-btn-pause.is-paused { background: #ff6b6b; color: #1a1a1a; }
+  .hud-btn-auto { background: rgba(255, 255, 255, 0.14); color: #f4f4f4; }
+  .hud-btn-auto.is-active { background: #9ef01a; color: #11210a; }
   .hud-btn-menu { min-width: 48px; padding: 6px 10px; background: rgba(255, 255, 255, 0.14); color: #f4f4f4; }
   .hud-btn-menu svg { width: 20px; height: 20px; display: block; }
   .game-confirm {
@@ -438,8 +438,8 @@
         <button id="speedBtn" class="hud-btn hud-btn-speed" type="button" title="Rychlost hry">
           <img class="hud-btn-icon-img" src="assets/ui/hud-speed.png" alt="" /><span class="hud-btn-label" id="speedLabel">1x</span>
         </button>
-        <button id="pauseBtn" class="hud-btn hud-btn-pause" type="button" title="Pauza">
-          <img class="hud-btn-icon-img" src="assets/ui/hud-pause.png" alt="" /><span class="hud-btn-label">Pauza</span>
+        <button id="autoWaveBtn" class="hud-btn hud-btn-auto" type="button" title="Auto vlny (P): vlny idu sami bez klikania">
+          <span class="hud-btn-icon">∞</span><span class="hud-btn-label">Auto</span>
         </button>
       </div>
       <div class="hud-dev">
@@ -478,7 +478,7 @@
         <div class="shortcut-row"><span>Zoom</span><kbd>koliesko</kbd></div>
         <div class="shortcut-row"><span>Posun kamery</span><kbd>WASD</kbd></div>
         <div class="shortcut-row is-pending"><span>Zásah</span><kbd>R</kbd></div>
-        <div class="shortcut-row"><span>Pauza</span><kbd>P / Esc</kbd></div>
+        <div class="shortcut-row"><span>Auto vlny (zapnúť/vypnúť)</span><kbd>P</kbd></div>
       </div>
       <div class="side-note">Stlmené skratky čakajú na napojenie hernej logiky.</div>
     </div>
@@ -628,10 +628,9 @@
         window.__bastionGrid.setSpeed(mult);
         document.getElementById('speedLabel').textContent = mult + 'x';
       });
-      document.getElementById('pauseBtn').addEventListener('click', (e) => {
-        const isPaused = window.__bastionGrid.togglePause();
-        e.currentTarget.classList.toggle('is-paused', isPaused);
-        showHudToast(isPaused ? 'Pauza' : 'Pokracujeme');
+      document.getElementById('autoWaveBtn').addEventListener('click', (e) => {
+        const isAuto = window.__bastionGrid.toggleAutoWaves();
+        e.currentTarget.classList.toggle('is-active', isAuto);
       });
 
       // ---- Level progression (GDD 5.4/campaign task): main.js dispatches

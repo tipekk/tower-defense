@@ -165,9 +165,19 @@ function gridToWorld(centeredX, centeredZ) {
 // Game logic instance (task C): no Three.js inside Game/Tower/Enemy/Combat/
 // Waves/Economy -- this file is the sole bridge to the renderer.
 // ---------------------------------------------------------------------------
-const START_LIVES = 20;
+let START_LIVES = 20;
 const game = new Game({ path: gamePath, startLives: START_LIVES }); // start gold: Economy.STARTING_GOLD
 game.start();
+
+// Zombie mode difficulty (uloha "lepsia hra", 1.11.2026): doteraz bol
+// Zombie len kozmeticka paleta/svetlo -- rovnaka HP/zlato/zivoty ako Basic,
+// odtial sa citil "aj tak lahky". GDD 6.3 pocita s realne tazsim modom
+// (menej zivotov/zlata, viac HP) -- pridavame mierny, jednoduchy
+// multiplikator priamo tu (bez novej Contagion/mutacie mechaniky, aby to
+// zostalo jednoduche), aplikovany raz pri vybere modu v setTheme().
+const ZOMBIE_HP_BONUS = 1.25;      // enemy/boss HP navyse oproti Basic (nad ramec level hpMultiplier)
+const ZOMBIE_START_LIVES = 16;     // vs. 20 v Basic
+const ZOMBIE_GOLD_FACTOR = 0.85;   // o 15 % menej startovacieho zlata
 
 // map_01.json's own `waves` array was authored by an earlier task with its
 // own placeholder enemy names ("basic_grunt"/"runner"/"armored_grunt"/
@@ -194,11 +204,12 @@ function buildSpawnListForMapWave(mapWave) {
     // Level HP multiplikator (uloha X): bezni nepriatelia hpMultiplier,
     // bossovia bossHpMultiplier; bossove miniony dostanu hpMultiplier.
     const lvl = LEVELS[currentLevelIdx] || {};
-    const hpm = lvl.hpMultiplier || 1;
+    const zombieBonus = themeKey === 'zombie' ? ZOMBIE_HP_BONUS : 1;
+    const hpm = (lvl.hpMultiplier || 1) * zombieBonus;
     const isBoss = !!ENEMY_TYPES[type]?.isBoss;
     const entries = buildUniformWave(type, group.count, group.delay);
     for (const en of entries) {
-      en.hpMult = isBoss ? (lvl.bossHpMultiplier || 1) : hpm;
+      en.hpMult = isBoss ? (lvl.bossHpMultiplier || 1) * zombieBonus : hpm;
       if (isBoss) en.minionHpMult = hpm;
     }
     list.push(...entries);
@@ -680,8 +691,17 @@ window.addEventListener('orientationchange', resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(container);
 resize();
 
+let zombieDifficultyApplied = false;
 function setTheme(key) {
   themeKey = key;
+  // Apply the Zombie difficulty bump exactly once (on the Play-time mode
+  // pick, before any wave has run -- see "lepsia hra" note above).
+  if (key === 'zombie' && !zombieDifficultyApplied) {
+    zombieDifficultyApplied = true;
+    START_LIVES = ZOMBIE_START_LIVES;
+    game.lives = ZOMBIE_START_LIVES;
+    game.economy.gold = Math.round(game.economy.gold * ZOMBIE_GOLD_FACTOR);
+  }
   theme = applyTheme(lightRig, scene, key);
   updateSkyDome(sky, theme.skyTop, theme.skyBottom, theme.skyHorizon);
   retintTileGrid(tileGrid, theme);
@@ -700,7 +720,7 @@ function setTheme(key) {
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); document.getElementById('startWaveBtn')?.click(); }
   if (e.code === 'KeyF') document.getElementById('speedBtn')?.click();
-  if (e.code === 'KeyP') document.getElementById('pauseBtn')?.click();
+  if (e.code === 'KeyP') document.getElementById('autoWaveBtn')?.click();
 });
 
 // ---------------------------------------------------------------------------
@@ -718,7 +738,15 @@ function updateHud() {
   // Wave numerator/denominator are LEVEL-LOCAL (nextMapWaveIdx resets to 0
   // each level; game.waveNumber itself keeps climbing across all levels,
   // HP scaling uses game.levelWaveNumber instead -- see Game.startLevel()).
-  if (waveEl) waveEl.textContent = `L${currentLevelIdx + 1} · ${nextMapWaveIdx}/${currentWaves().length}`;
+  if (waveEl) {
+    let waveTxt = `L${currentLevelIdx + 1} · ${nextMapWaveIdx}/${currentWaves().length}`;
+    if (autoWaves && nextMapWaveIdx < currentWaves().length) {
+      waveTxt += game.isWaveActive() || game.waveQueue.length > 0
+        ? ' · auto'
+        : ` · auto ${Math.max(0, Math.ceil(autoWaveCountdown))}s`;
+    }
+    waveEl.textContent = waveTxt;
+  }
 
   if (game.lives < prevLives) {
     const flash = document.getElementById('hudLivesFlash');
@@ -802,6 +830,30 @@ let speedMultiplier = 1;
 let paused = false;
 let simTime = 0;
 
+// Auto-wave mode (uloha "lepsia hra", 1.11.2026): nahradza staru Pauzu v
+// HUD-e. Zapnute = vlny sa spustaju sami (countdown medzi nimi, podobne
+// GDD 5.5 "odpocet medzi vlnami"), hrac nemusi klikat "Vlna". Manualne
+// kliknutie na "Vlna" funguje aj pocas auto-modu (posle dalsiu vlnu hned,
+// countdown sa potom reštartuje) -- auto a manual nie su navzajom
+// exkluzivne.
+let autoWaves = false;
+const AUTO_WAVE_DELAY = 3.5; // sim-sekundy medzi auto-odoslanymi vlnami
+let autoWaveCountdown = AUTO_WAVE_DELAY;
+
+/** Posle dalsiu vlnu z aktualnej mapy (ak nejaka zostava). Pouziva ju
+ * manualne tlacidlo "Vlna" aj auto-wave tiket v animate(). */
+function sendNextWave() {
+  const waves = currentWaves();
+  if (nextMapWaveIdx >= waves.length) {
+    return null;
+  }
+  const mapWave = waves[nextMapWaveIdx];
+  nextMapWaveIdx += 1;
+  game.queueWave(buildSpawnListForMapWave(mapWave));
+  showHudToast(`Vlna ${mapWave.index} spustená`);
+  return mapWave.index;
+}
+
 const clock = new THREE.Clock();
 const _aim = new THREE.Vector3();
 
@@ -821,6 +873,14 @@ function animate() {
   inputController.update(dt);
 
   if (simDt > 0) game.step(simDt);
+  if (autoWaves && simDt > 0 && !game.isWaveActive() && game.waveQueue.length === 0
+      && nextMapWaveIdx < currentWaves().length) {
+    autoWaveCountdown -= simDt;
+    if (autoWaveCountdown <= 0) {
+      sendNextWave();
+      autoWaveCountdown = AUTO_WAVE_DELAY;
+    }
+  }
   updateHud();
   updateWavePreview();
 
@@ -926,16 +986,16 @@ window.__bastionGrid = {
     return paused;
   },
   startNextWave: () => {
-    const waves = currentWaves();
-    if (nextMapWaveIdx >= waves.length) {
-      showHudToast('Všetky vlny z mapy už boli odoslané');
-      return null;
-    }
-    const mapWave = waves[nextMapWaveIdx];
-    nextMapWaveIdx += 1;
-    game.queueWave(buildSpawnListForMapWave(mapWave));
-    showHudToast(`Vlna ${mapWave.index} spustená`);
-    return mapWave.index;
+    const idx = sendNextWave();
+    if (idx == null) showHudToast('Všetky vlny z mapy už boli odoslané');
+    else autoWaveCountdown = AUTO_WAVE_DELAY; // manual send also resets the auto countdown
+    return idx;
+  },
+  toggleAutoWaves: () => {
+    autoWaves = !autoWaves;
+    autoWaveCountdown = autoWaves ? 1.2 : AUTO_WAVE_DELAY; // prva auto vlna prichadza skoro hned
+    showHudToast(autoWaves ? 'Auto vlny: ZAPNUTÉ' : 'Auto vlny: VYPNUTÉ');
+    return autoWaves;
   },
   // Level progression (task: level 2 + boss). Called by index.html/
   // preview.html's "Ďalší level" button once bastiongrid:levelcomplete
@@ -952,6 +1012,7 @@ window.__bastionGrid = {
       rebuildBoardForLevel(newMap);
       showHudToast(`Bašta sa premiestnila: ${newMap.name}. Postav obranu od znova!`);
     }
+    autoWaveCountdown = AUTO_WAVE_DELAY;
     game.startLevel();
     return true;
   },
