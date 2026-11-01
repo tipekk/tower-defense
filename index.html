@@ -643,15 +643,17 @@
       const lcText = document.getElementById('levelCompleteText');
       const lcBtn = document.getElementById('levelCompleteBtn');
       window.addEventListener('bastiongrid:levelcomplete', (e) => {
-        const { final, level, totalLevels } = e.detail || {};
+        const { final, level, totalLevels, resetsBoard, nextMapName } = e.detail || {};
         if (final) {
           lcTitle.textContent = `Level ${level} dokončený — Bašta ubránená!`;
-          lcText.textContent = 'Kukučkový kolos Tyran padol. Hodinárova légia je zastavená navždy. Ďakujeme za hru!';
+          lcText.textContent = 'Posledný Mechanizmus zastal navždy. Hodinárova légia je rozobraná na súkolie. Ďakujeme za hru!';
           lcBtn.textContent = 'Späť do menu';
           lcBtn.dataset.act = 'menu';
         } else {
           lcTitle.textContent = `Level ${level} dokončený!`;
-          lcText.textContent = `Hodinár naťahuje ťažšie súkolie. Level ${level + 1} z ${totalLevels} je odomknutý.`;
+          lcText.textContent = resetsBoard
+            ? `Hodinár naťahuje ťažšie súkolie. Level ${level + 1} (${nextMapName || ''}) je úplne nová mapa — vežičky sa zbúrajú (zlato sa vráti) a stavia sa od začiatku.`
+            : `Hodinár naťahuje ťažšie súkolie. Level ${level + 1} z ${totalLevels} je odomknutý.`;
           lcBtn.textContent = 'Ďalší level';
           lcBtn.dataset.act = 'next';
         }

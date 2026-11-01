@@ -1,0 +1,475 @@
+{
+  "id": "map_07",
+  "name": "Siedma Bašta",
+  "mode": [
+    "basic",
+    "zombie"
+  ],
+  "width": 12,
+  "height": 12,
+  "tileLegend": {
+    ".": "grass",
+    "#": "path",
+    "^": "elevated",
+    "x": "decor"
+  },
+  "grid": [
+    "............",
+    "###########.",
+    "..........#.",
+    ".########.#.",
+    ".#......#.#.",
+    ".#....^.#.#.",
+    ".#..^...#.#.",
+    ".#......#.#.",
+    ".#x.....#.#.",
+    ".#........#.",
+    ".##########.",
+    "............"
+  ],
+  "spawn": {
+    "x": 0,
+    "z": 1
+  },
+  "gate": {
+    "x": 8,
+    "z": 8
+  },
+  "waypoints": [
+    {
+      "x": 0,
+      "z": 1
+    },
+    {
+      "x": 10,
+      "z": 1
+    },
+    {
+      "x": 10,
+      "z": 10
+    },
+    {
+      "x": 1,
+      "z": 10
+    },
+    {
+      "x": 1,
+      "z": 3
+    },
+    {
+      "x": 8,
+      "z": 3
+    },
+    {
+      "x": 8,
+      "z": 8
+    }
+  ],
+  "elevatedTiles": [
+    {
+      "x": 4,
+      "z": 6
+    },
+    {
+      "x": 6,
+      "z": 5
+    }
+  ],
+  "decorTiles": [
+    {
+      "x": 2,
+      "z": 8
+    }
+  ],
+  "description": "Level 7: uplne nova mapa (spiral dovnutra, brana v strede-vpravo), vsetky veze sa stavaju od znova. Nepriatelia x7.2 HP, boss Kukuckovy kolos Dominus (8 faz omracenia, bez rozpadu, najsilnejsia vytrvalost zatial).",
+  "hpMultiplier": 7.2,
+  "bossHpMultiplier": 0.24,
+  "resetMap": true,
+  "waves": [
+    {
+      "index": 1,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 17,
+          "delay": 0.44
+        },
+        {
+          "type": "vrtiak",
+          "count": 24,
+          "delay": 0.24
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 21,
+          "delay": 0.35
+        },
+        {
+          "type": "kotlar",
+          "count": 15,
+          "delay": 0.42
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 27,
+          "delay": 0.36
+        },
+        {
+          "type": "navijac",
+          "count": 4,
+          "delay": 0.65
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "enemies": [
+        {
+          "type": "vrtiak",
+          "count": 39,
+          "delay": 0.2
+        },
+        {
+          "type": "vazka",
+          "count": 17,
+          "delay": 0.33
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "enemies": [
+        {
+          "type": "navijac",
+          "count": 5,
+          "delay": 0.61
+        },
+        {
+          "type": "kotlar",
+          "count": 34,
+          "delay": 0.35
+        },
+        {
+          "type": "cvakac",
+          "count": 27,
+          "delay": 0.26
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 29,
+          "delay": 0.3
+        },
+        {
+          "type": "kotlar",
+          "count": 21,
+          "delay": 0.36
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 39,
+          "delay": 0.32
+        },
+        {
+          "type": "navijac",
+          "count": 8,
+          "delay": 0.57
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "enemies": [
+        {
+          "type": "vrtiak",
+          "count": 42,
+          "delay": 0.18
+        },
+        {
+          "type": "vazka",
+          "count": 24,
+          "delay": 0.3
+        },
+        {
+          "type": "navijac",
+          "count": 4,
+          "delay": 0.61
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 42,
+          "delay": 0.3
+        },
+        {
+          "type": "navijac",
+          "count": 8,
+          "delay": 0.52
+        },
+        {
+          "type": "vazka",
+          "count": 17,
+          "delay": 0.3
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 42,
+          "delay": 0.21
+        },
+        {
+          "type": "vrtiak",
+          "count": 39,
+          "delay": 0.18
+        },
+        {
+          "type": "kotlar",
+          "count": 24,
+          "delay": 0.33
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 39,
+          "delay": 0.26
+        },
+        {
+          "type": "navijac",
+          "count": 8,
+          "delay": 0.52
+        },
+        {
+          "type": "kotlar",
+          "count": 17,
+          "delay": 0.33
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 48,
+          "delay": 0.28
+        },
+        {
+          "type": "navijac",
+          "count": 9,
+          "delay": 0.51
+        },
+        {
+          "type": "vrtiak",
+          "count": 27,
+          "delay": 0.18
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 36,
+          "delay": 0.26
+        },
+        {
+          "type": "kotlar",
+          "count": 36,
+          "delay": 0.3
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "enemies": [
+        {
+          "type": "navijac",
+          "count": 9,
+          "delay": 0.48
+        },
+        {
+          "type": "kotlar",
+          "count": 46,
+          "delay": 0.28
+        },
+        {
+          "type": "vazka",
+          "count": 24,
+          "delay": 0.26
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 46,
+          "delay": 0.2
+        },
+        {
+          "type": "vrtiak",
+          "count": 46,
+          "delay": 0.16
+        },
+        {
+          "type": "kotlar",
+          "count": 29,
+          "delay": 0.3
+        },
+        {
+          "type": "navijac",
+          "count": 5,
+          "delay": 0.52
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 51,
+          "delay": 0.26
+        },
+        {
+          "type": "navijac",
+          "count": 11,
+          "delay": 0.48
+        },
+        {
+          "type": "vazka",
+          "count": 27,
+          "delay": 0.26
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "enemies": [
+        {
+          "type": "vazka",
+          "count": 46,
+          "delay": 0.22
+        },
+        {
+          "type": "vrtiak",
+          "count": 42,
+          "delay": 0.16
+        },
+        {
+          "type": "navijac",
+          "count": 9,
+          "delay": 0.48
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "enemies": [
+        {
+          "type": "kotlar",
+          "count": 58,
+          "delay": 0.24
+        },
+        {
+          "type": "navijac",
+          "count": 12,
+          "delay": 0.44
+        },
+        {
+          "type": "vazka",
+          "count": 21,
+          "delay": 0.26
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "enemies": [
+        {
+          "type": "cvakac",
+          "count": 39,
+          "delay": 0.18
+        },
+        {
+          "type": "vrtiak",
+          "count": 39,
+          "delay": 0.16
+        },
+        {
+          "type": "kotlar",
+          "count": 46,
+          "delay": 0.26
+        },
+        {
+          "type": "vazka",
+          "count": 29,
+          "delay": 0.24
+        },
+        {
+          "type": "navijac",
+          "count": 11,
+          "delay": 0.44
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "enemies": [
+        {
+          "type": "boss_kukucka_dominus",
+          "count": 1,
+          "delay": 0
+        },
+        {
+          "type": "kotlar",
+          "count": 36,
+          "delay": 0.33
+        },
+        {
+          "type": "navijac",
+          "count": 9,
+          "delay": 0.52
+        },
+        {
+          "type": "vazka",
+          "count": 21,
+          "delay": 0.28
+        }
+      ]
+    }
+  ]
+}

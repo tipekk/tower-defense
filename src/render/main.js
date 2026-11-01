@@ -112,12 +112,31 @@ const MAP4_URL = 'src/data/maps/map_04.json';
 const map4Data = await fetch(MAP4_URL).then((r) => r.json());
 const MAP5_URL = 'src/data/maps/map_05.json';
 const map5Data = await fetch(MAP5_URL).then((r) => r.json());
-const LEVELS = [mapData, map2Data, map3Data, map4Data, map5Data];
+// Levely 6-10 (uloha "nova bastova sada", 1.11.2026): kazda z tychto 5 map
+// ma SVOJU VLASTNU mriezku/cestu (nie recyklovanu z map_01 ako levely 2-5)
+// a nesie `resetMap: true` -- pri prechode na taky level main.js vymeni
+// cely terén/cestu (rebuildBoardForLevel nizsie) a zmaze/refundne vsetky
+// postavene veze, takze hrac stavia od znova. Zlato/ziskane body (Economy)
+// a zivoty sa NEresetuju -- presne podla zadania "body ostanú".
+const MAP6_URL = 'src/data/maps/map_06.json';
+const map6Data = await fetch(MAP6_URL).then((r) => r.json());
+const MAP7_URL = 'src/data/maps/map_07.json';
+const map7Data = await fetch(MAP7_URL).then((r) => r.json());
+const MAP8_URL = 'src/data/maps/map_08.json';
+const map8Data = await fetch(MAP8_URL).then((r) => r.json());
+const MAP9_URL = 'src/data/maps/map_09.json';
+const map9Data = await fetch(MAP9_URL).then((r) => r.json());
+const MAP10_URL = 'src/data/maps/map_10.json';
+const map10Data = await fetch(MAP10_URL).then((r) => r.json());
+const LEVELS = [
+  mapData, map2Data, map3Data, map4Data, map5Data,
+  map6Data, map7Data, map8Data, map9Data, map10Data,
+];
 let currentLevelIdx = 0;
 function currentWaves() { return LEVELS[currentLevelIdx].waves; }
-const grid = new Grid(mapData);
-const GRID_SIZE = grid.width; // map_01 is square (12x12); createTileGrid assumes square
-const gridOffset = (GRID_SIZE - 1) / 2;
+let grid = new Grid(mapData);
+let GRID_SIZE = grid.width; // map_01 is square (12x12); createTileGrid assumes square
+let gridOffset = (GRID_SIZE - 1) / 2;
 
 // Fit to the playable grid only (island rim/decor may crop slightly) so the
 // board is as big as possible on phones.
@@ -132,8 +151,8 @@ const centeredWaypoints = mapData.waypoints.map((wp) => ({
   x: wp.x - gridOffset,
   z: wp.z - gridOffset,
 }));
-const enemyPath = new Path(centeredWaypoints, 1);
-const gamePath = {
+let enemyPath = new Path(centeredWaypoints, 1);
+let gamePath = {
   length: enemyPath.totalLength,
   getPositionAtT: (t) => enemyPath.getPositionAtT(t),
 };
@@ -189,7 +208,7 @@ function buildSpawnListForMapWave(mapWave) {
 
 let nextMapWaveIdx = 0;
 
-const dioramaBase = createDioramaBase(GRID_SIZE, theme.stone);
+let dioramaBase = createDioramaBase(GRID_SIZE, theme.stone);
 scene.add(dioramaBase);
 
 function tileKindAt(x, z) {
@@ -200,13 +219,13 @@ function tileKindAt(x, z) {
   const type = grid.getTile(x, z)?.type ?? 'grass';
   return type === 'path' ? 'road' : type;
 }
-const tileGrid = createTileGrid(GRID_SIZE, theme, [], tileKindAt);
+let tileGrid = createTileGrid(GRID_SIZE, theme, [], tileKindAt);
 scene.add(tileGrid);
 
 // Task P (terrain pass): instanced grass tufts/pebbles scattered across the
 // buildable tiles -- see Scene.js createGroundClutter for why this needed
 // its own pass (flat single-color tiles previously had zero decor/variety).
-const groundClutter = createGroundClutter(GRID_SIZE, theme, tileKindAt);
+let groundClutter = createGroundClutter(GRID_SIZE, theme, tileKindAt);
 scene.add(groundClutter);
 
 // ---------------------------------------------------------------------------// ---------------------------------------------------------------------------
@@ -498,6 +517,72 @@ function tileOccupied(tileObj) {
     Math.abs(m.position.x - tileObj.position.x) < 0.01 && Math.abs(m.position.z - tileObj.position.z) < 0.01);
 }
 
+// ---------------------------------------------------------------------------
+// Level 6-10 map reset (uloha "nova bastova sada", 1.11.2026): these levels
+// each ship their own terrain/path (map.resetMap === true), so advancing
+// into one swaps the whole board instead of reusing map_01's grid like
+// levels 2-5 do. Gold/stats/lives carry over untouched (Economy instance
+// is never replaced) -- only the towers + the terrain/path are rebuilt.
+// Scene containers (tileGrid/groundClutter/dioramaBase/InputController)
+// keep their original object identity: InputController captured `tileGrid`
+// by reference at construction time and raycasts tileGrid.children live,
+// so we reparent fresh children into the SAME groups rather than replacing
+// them (replacing would silently break tile-tap input).
+function reparentChildren(targetGroup, freshGroup) {
+  for (const child of [...targetGroup.children]) {
+    targetGroup.remove(child);
+    child.traverse?.((o) => { o.geometry?.dispose?.(); });
+  }
+  for (const child of [...freshGroup.children]) {
+    freshGroup.remove(child);
+    targetGroup.add(child);
+  }
+}
+
+function rebuildBoardForLevel(newMapData) {
+  // 1) Clear the board: refund every standing tower (full sell value --
+  // the player's gold/"body" stay, only the physical defense resets) and
+  // wipe any stragglers from the previous level.
+  for (const tower of [...game.towers]) {
+    const refund = game.sellValue(tower);
+    game.economy.refund(refund);
+    const idx = game.towers.indexOf(tower);
+    if (idx >= 0) game.towers.splice(idx, 1);
+    removeTowerMesh(tower);
+  }
+  game.enemies = [];
+  game.waveQueue = [];
+  game.waveRunner = null;
+  for (const [id] of [...enemyVisualById.entries()]) removeEnemyMesh(id);
+
+  // 2) New terrain/path (own grid per level, not map_01's recycled one).
+  grid = new Grid(newMapData);
+  GRID_SIZE = grid.width;
+  gridOffset = (GRID_SIZE - 1) / 2;
+  const newCenteredWaypoints = newMapData.waypoints.map((wp) => ({
+    x: wp.x - gridOffset,
+    z: wp.z - gridOffset,
+  }));
+  enemyPath = new Path(newCenteredWaypoints, 1);
+  gamePath = { length: enemyPath.totalLength, getPositionAtT: (t) => enemyPath.getPositionAtT(t) };
+  game.path = gamePath;
+
+  setFitExtent((GRID_SIZE * TILE_SIZE) / 2 * 0.9, 1.0);
+
+  reparentChildren(dioramaBase, createDioramaBase(GRID_SIZE, theme.stone));
+  reparentChildren(tileGrid, createTileGrid(GRID_SIZE, theme, [], tileKindAt));
+  reparentChildren(groundClutter, createGroundClutter(GRID_SIZE, theme, tileKindAt));
+
+  // 3) Surprise flourish: a staggered burst of dust/impact FX sprinkled
+  // across the new board, so "mapa sa prestavuje" reads as an event, not
+  // a silent swap.
+  for (let i = 0; i < 16; i++) {
+    const rx = (Math.random() - 0.5) * GRID_SIZE * TILE_SIZE * 0.85;
+    const rz = (Math.random() - 0.5) * GRID_SIZE * TILE_SIZE * 0.85;
+    setTimeout(() => fx.impact(new THREE.Vector3(rx, 0.6, rz), 'cannon', 0.55), i * 55);
+  }
+}
+
 function onSelectTile(tileObj, screenX, screenY) {
   clearSelection();
   if (!tileObj.userData.isBuildable) return;
@@ -662,8 +747,13 @@ function updateHud() {
         // campaign win. index.html/preview.html listen for this event to
         // show the "Ďalší level"/final-win modal (GDD progression, task).
         const isFinalLevel = currentLevelIdx >= LEVELS.length - 1;
+        const nextMap = LEVELS[currentLevelIdx + 1];
         window.dispatchEvent(new CustomEvent('bastiongrid:levelcomplete', {
-          detail: { final: isFinalLevel, level: currentLevelIdx + 1, totalLevels: LEVELS.length },
+          detail: {
+            final: isFinalLevel, level: currentLevelIdx + 1, totalLevels: LEVELS.length,
+            resetsBoard: !isFinalLevel && !!nextMap?.resetMap,
+            nextMapName: nextMap?.name,
+          },
         }));
       } else {
         showHudToast(`Vlna ${nextMapWaveIdx} prežitá!`);
@@ -857,6 +947,11 @@ window.__bastionGrid = {
     if (currentLevelIdx >= LEVELS.length - 1) return false;
     currentLevelIdx += 1;
     nextMapWaveIdx = 0;
+    const newMap = LEVELS[currentLevelIdx];
+    if (newMap.resetMap) {
+      rebuildBoardForLevel(newMap);
+      showHudToast(`Bašta sa premiestnila: ${newMap.name}. Postav obranu od znova!`);
+    }
     game.startLevel();
     return true;
   },
